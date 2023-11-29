@@ -1,5 +1,5 @@
 #include <iomanip>
-#include "Camera.h"
+#include "../include/Camera.h"
 
 Camera::Camera() {}
 
