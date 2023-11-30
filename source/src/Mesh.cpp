@@ -1,6 +1,6 @@
 #include <vector>
 #include <iomanip>
-#include "Mesh.h"
+#include "../include/Mesh.h"
 
 Mesh::Mesh() {}
 

@@ -1,5 +1,5 @@
 #include <iomanip>
-#include "Scaling.h"
+#include "../include/Scaling.h"
 
 Scaling::Scaling() {
     this->scalingId = -1;

@@ -1,39 +1,43 @@
 #include <iomanip>
-#include "Vec3.h"
+#include "../include/Vec4.h"
 
-Vec3::Vec3()
+Vec4::Vec4()
 {
     this->x = 0.0;
     this->y = 0.0;
     this->z = 0.0;
+    this->t = 0.0;
     this->colorId = NO_COLOR;
 }
 
-Vec3::Vec3(double x, double y, double z)
+Vec4::Vec4(double x, double y, double z, double t)
 {
     this->x = x;
     this->y = y;
     this->z = z;
+    this->t = t;
     this->colorId = NO_COLOR;
 }
 
-Vec3::Vec3(double x, double y, double z, int colorId)
+Vec4::Vec4(double x, double y, double z, double t, int colorId)
 {
     this->x = x;
     this->y = y;
     this->z = z;
+    this->t = t;
     this->colorId = colorId;
 }
 
-Vec3::Vec3(const Vec3 &other)
+Vec4::Vec4(const Vec4 &other)
 {
     this->x = other.x;
     this->y = other.y;
     this->z = other.z;
+    this->t = other.t;
     this->colorId = other.colorId;
 }
 
-double Vec3::getNthComponent(int n)
+double Vec4::getNthComponent(int n)
 {
     switch (n)
     {
@@ -44,13 +48,16 @@ double Vec3::getNthComponent(int n)
         return this->y;
 
     case 2:
-    default:
         return this->z;
+
+    case 3:
+    default:
+        return this->t;
     }
 }
 
-std::ostream &operator<<(std::ostream &os, const Vec3 &v)
+std::ostream &operator<<(std::ostream &os, const Vec4 &v)
 {
-    os << std::fixed << std::setprecision(6) << "[" << v.x << ", " << v.y << ", " << v.z << "]";
+    os << std::fixed << std::setprecision(6) << "[" << v.x << ", " << v.y << ", " << v.z << ", " << v.t << "]";
     return os;
 }

@@ -7,10 +7,10 @@
 #include <vector>
 #include <cmath>
 
-#include "tinyxml2.h"
-#include "Triangle.h"
-#include "Helpers.h"
-#include "Scene.h"
+#include "../include/tinyxml2.h"
+#include "../include/Triangle.h"
+#include "../include/Helpers.h"
+#include "../include/Scene.h"
 
 using namespace tinyxml2;
 using namespace std;

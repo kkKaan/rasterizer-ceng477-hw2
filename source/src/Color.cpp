@@ -1,5 +1,5 @@
 #include <iomanip>
-#include "Color.h"
+#include "../include/Color.h"
 
 Color::Color() {
     this->r = 0;
