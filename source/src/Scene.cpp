@@ -348,9 +348,84 @@ void Scene::convertPPMToPNG(string ppmFileName)
 }
 
 /*
+	Applies model transformations (translation, rotation, scaling) to the mesh.
+*/
+void Scene::applyModelTransformations(Mesh *mesh)
+{
+	for (int i = 0; i < mesh->numberOfTriangles; i++)
+	{
+		Triangle *triangle = &mesh->triangles[i];
+
+		for (int j = 0; j < 3; j++)
+		{
+			Vec3 *vertex = this->vertices[triangle->vertexIds[j] - 1];
+
+			for (int k = 0; k < mesh->numberOfTransformations; k++)
+			{
+				char transformationType = mesh->transformationTypes[k];
+				int transformationId = mesh->transformationIds[k];
+
+				switch (transformationType)
+				{
+					case 't':
+					{
+						Translation *translation = this->translations[transformationId - 1];
+						*vertex = vertex->translateVec3(*vertex, *translation);
+						break;
+					}
+					case 's':
+					{
+						Scaling *scaling = this->scalings[transformationId - 1];
+						*vertex = vertex->scaleVec3(*vertex, *scaling);
+						break;
+					}
+					case 'r':
+					{
+						Rotation *rotation = this->rotations[transformationId - 1];
+						*vertex = vertex->rotateVec3(*vertex, *rotation);
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+/*
 	Transformations, clipping, culling, rasterization are done here.
 */
 void Scene::forwardRenderingPipeline(Camera *camera)
 {
-	// TODO: Implement this function
+    // Step 1: Transform each mesh in the scene
+    for (Mesh *mesh : this->meshes)
+    {
+        // Apply model transformations (translation, rotation, scaling) to the mesh
+        applyModelTransformations(mesh);
+
+        // Step 2: Process each triangle in the mesh
+        for (Triangle triangle : mesh->triangles)
+        {
+            // Transform the vertices of the triangle to camera space
+            Triangle cameraSpaceTriangle = transformTriangleToCameraSpace(triangle, camera);
+
+            // Step 3: Perform clipping
+            if (!clipTriangle(cameraSpaceTriangle, camera))
+            {
+                continue; // Skip the triangle if it's outside the view frustum
+            }
+
+            // Step 4: Check for back-face culling if enabled
+            if (this->cullingEnabled && isBackFace(cameraSpaceTriangle, camera))
+            {
+                continue; // Skip rendering this triangle
+            }
+
+            // Step 5: Project the triangle onto the image plane
+            Triangle projectedTriangle = projectTriangle(cameraSpaceTriangle, camera);
+
+            // Step 6: Rasterize the triangle
+            rasterizeTriangle(projectedTriangle, camera);
+        }
+    }
 }
+

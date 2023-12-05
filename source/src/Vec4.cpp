@@ -61,3 +61,13 @@ std::ostream &operator<<(std::ostream &os, const Vec4 &v)
     os << std::fixed << std::setprecision(6) << "[" << v.x << ", " << v.y << ", " << v.z << ", " << v.t << "]";
     return os;
 }
+
+Vec4 Vec4::translateVec4(Vec4 v, Translation t)
+{
+    return Vec4(v.x + t.tx, v.y + t.ty, v.z + t.tz, v.t);
+}
+
+Vec4 Vec4::scaleVec4(Vec4 v, Scaling s)
+{
+    return Vec4(v.x * s.sx, v.y * s.sy, v.z * s.sz, v.t);
+}

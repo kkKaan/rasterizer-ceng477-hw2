@@ -8,6 +8,9 @@
 #include "Translation.h"
 #include "Camera.h"
 #include "Mesh.h"
+#include "Helpers.h"
+#include "Triangle.h"
+#include "Matrix4.h"
 
 class Scene
 {
@@ -33,6 +36,8 @@ public:
 	void writeImageToPPMFile(Camera *camera);
 	void convertPPMToPNG(std::string ppmFileName);
 	void forwardRenderingPipeline(Camera *camera);
+
+	void applyModelTransformations(Mesh *mesh);
 };
 
 #endif
