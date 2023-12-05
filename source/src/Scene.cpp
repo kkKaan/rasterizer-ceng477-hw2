@@ -340,10 +340,9 @@ void Scene::writeImageToPPMFile(Camera *camera)
 void Scene::convertPPMToPNG(string ppmFileName)
 {
 	string command, directory;
-	directory = "source/src/";
 	
 	// TODO: Change implementation if necessary.
-	command = "./magick convert " + directory + ppmFileName + " " + ppmFileName + ".png";
+	command = "./magick convert " + ppmFileName + " " + ppmFileName + ".png";
 	system(command.c_str());
 }
 
