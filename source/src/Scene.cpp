@@ -391,39 +391,84 @@ void Scene::applyModelTransformations(Mesh *mesh)
 }
 
 /*
+	Applies camera transformations (translation, rotation) to the mesh.
+*/
+void Scene::applyCameraTransformations(Mesh *mesh, Camera *camera)
+{
+    // Constructing the rotation part of the view matrix
+    Matrix4 rotationMatrix = Matrix4({
+        {camera->u.x, camera->u.y, camera->u.z, 0},
+        {camera->v.x, camera->v.y, camera->v.z, 0},
+        {camera->w.x, camera->w.y, camera->w.z, 0},
+        {0, 0, 0, 1}
+    });
+
+    // Constructing the translation part of the view matrix
+    Matrix4 translationMatrix = Matrix4({
+        {1, 0, 0, -camera->position.x},
+        {0, 1, 0, -camera->position.y},
+        {0, 0, 1, -camera->position.z},
+        {0, 0, 0, 1}
+    });
+
+	Matrix4 projectionMatrix = (camera->projectionType == 0) ? createOrthographicProjectionMatrix(camera) : createPerspectiveProjectionMatrix(camera);
+
+    // Combining rotation and translation into the view matrix
+    Matrix4 viewMatrix = rotationMatrix * translationMatrix;
+
+    for (int i = 0; i < mesh->numberOfTriangles; i++)
+    {
+        Triangle *triangle = &mesh->triangles[i];
+
+        for (int j = 0; j < 3; j++)
+        {
+            Vec3 *vertex = this->vertices[triangle->vertexIds[j] - 1];
+
+            // Apply view transformation
+            Vec4 vertexHomogeneous(vertex->x, vertex->y, vertex->z, 1); // Convert to homogeneous coordinates
+            Vec4 transformedVertex = multiplyMatrix4(vertexHomogeneous, viewMatrix); // Apply view transformation
+
+            // Convert back to 3D coordinates
+            *vertex = Vec3(transformedVertex.x, transformedVertex.y, transformedVertex.z);
+
+			// Apply projection transformation
+			Vec4 projectedVertex = multiplyMatrixVec4(projectionMatrix, Vec4(vertex->x, vertex->y, vertex->z, 1));
+
+			// Perspective divide for perspective projection
+			if (camera->projectionType == 1)
+			{
+                projectedVertex.x /= projectedVertex.w;
+                projectedVertex.y /= projectedVertex.w;
+                projectedVertex.z /= projectedVertex.w;
+            }
+
+			// Convert back to 3D coordinates
+			*vertex = Vec3(projectedVertex.x, projectedVertex.y, projectedVertex.z);
+        }
+    }
+}
+
+/*
 	Transformations, clipping, culling, rasterization are done here.
 */
 void Scene::forwardRenderingPipeline(Camera *camera)
 {
-    // Step 1: Transform each mesh in the scene
     for (Mesh *mesh : this->meshes)
     {
-        // Apply model transformations (translation, rotation, scaling) to the mesh
         applyModelTransformations(mesh);
+        applyCameraTransformations(mesh, camera);
 
-        // Step 2: Process each triangle in the mesh
-        for (Triangle triangle : mesh->triangles)
+		if (mesh->type == 0)
         {
-            // Transform the vertices of the triangle to camera space
-            Triangle cameraSpaceTriangle = transformTriangleToCameraSpace(triangle, camera);
+            clipTriangles(mesh, camera);
+        }
 
-            // Step 3: Perform clipping
-            if (!clipTriangle(cameraSpaceTriangle, camera))
+        for (Triangle& triangle : mesh->triangles)
+        {
+            if (!this->cullingEnabled || !isTriangleBackFacing(triangle, camera))
             {
-                continue; // Skip the triangle if it's outside the view frustum
+                rasterize(triangle, camera);
             }
-
-            // Step 4: Check for back-face culling if enabled
-            if (this->cullingEnabled && isBackFace(cameraSpaceTriangle, camera))
-            {
-                continue; // Skip rendering this triangle
-            }
-
-            // Step 5: Project the triangle onto the image plane
-            Triangle projectedTriangle = projectTriangle(cameraSpaceTriangle, camera);
-
-            // Step 6: Rasterize the triangle
-            rasterizeTriangle(projectedTriangle, camera);
         }
     }
 }
