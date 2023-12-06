@@ -493,7 +493,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
         applyModelTransformations(mesh);
         applyCameraTransformations(mesh, camera);
 
-		if (mesh->type == 0)
+		if (mesh->type == 0) // Wireframe
         {
             clipTriangles(mesh, camera);
         }
