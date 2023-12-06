@@ -347,6 +347,40 @@ void Scene::convertPPMToPNG(string ppmFileName)
 }
 
 /*
+	Creates orthographic projection matrix.
+*/
+Matrix4 createOrthographicProjectionMatrix(Camera *camera)
+{
+    double orthoMatrixValues[4][4] = {
+        {2 / (camera->right - camera->left), 0, 0, -(camera->right + camera->left) / (camera->right - camera->left)},
+        {0, 2 / (camera->top - camera->bottom), 0, -(camera->top + camera->bottom) / (camera->top - camera->bottom)},
+        {0, 0, -2 / (camera->far - camera->near), -(camera->far + camera->near) / (camera->far - camera->near)},
+        {0, 0, 0, 1}
+    };
+
+    return Matrix4(orthoMatrixValues);
+}
+
+/*
+	Creates perspective projection matrix.
+*/
+Matrix4 createPerspectiveProjectionMatrix(Camera *camera) // ??????
+{
+    double aspectRatio = static_cast<double>(camera->horRes) / camera->verRes;
+    double fovyRadians = 2 * atan((camera->top - camera->bottom) / (2 * camera->near)); // Field of view in radians
+    double f = 1.0 / tan(fovyRadians / 2); // Focal length
+
+    double perspectiveMatrixValues[4][4] = {
+        {f / aspectRatio, 0, 0, 0},
+        {0, f, 0, 0},
+        {0, 0, (camera->far + camera->near) / (camera->near - camera->far), 2 * camera->far * camera->near / (camera->near - camera->far)},
+        {0, 0, -1, 0}
+    };
+
+    return Matrix4(perspectiveMatrixValues);
+}
+
+/*
 	Applies model transformations (translation, rotation, scaling) to the mesh.
 */
 void Scene::applyModelTransformations(Mesh *mesh)
@@ -396,21 +430,24 @@ void Scene::applyModelTransformations(Mesh *mesh)
 void Scene::applyCameraTransformations(Mesh *mesh, Camera *camera)
 {
     // Constructing the rotation part of the view matrix
-    Matrix4 rotationMatrix = Matrix4({
-        {camera->u.x, camera->u.y, camera->u.z, 0},
-        {camera->v.x, camera->v.y, camera->v.z, 0},
-        {camera->w.x, camera->w.y, camera->w.z, 0},
-        {0, 0, 0, 1}
-    });
+    double rotationMatrixValues[4][4] = {
+		{camera->u.x, camera->u.y, camera->u.z, 0},
+		{camera->v.x, camera->v.y, camera->v.z, 0},
+		{camera->w.x, camera->w.y, camera->w.z, 0},
+		{0, 0, 0, 1}
+	};
+	Matrix4 rotationMatrix = Matrix4(rotationMatrixValues);
 
     // Constructing the translation part of the view matrix
-    Matrix4 translationMatrix = Matrix4({
-        {1, 0, 0, -camera->position.x},
-        {0, 1, 0, -camera->position.y},
-        {0, 0, 1, -camera->position.z},
-        {0, 0, 0, 1}
-    });
+    double translationMatrixValues[4][4] = {
+		{1, 0, 0, -camera->position.x},
+		{0, 1, 0, -camera->position.y},
+		{0, 0, 1, -camera->position.z},
+		{0, 0, 0, 1}
+	};
+	Matrix4 translationMatrix = Matrix4(translationMatrixValues);
 
+	// Constructing the projection matrix
 	Matrix4 projectionMatrix = (camera->projectionType == 0) ? createOrthographicProjectionMatrix(camera) : createPerspectiveProjectionMatrix(camera);
 
     // Combining rotation and translation into the view matrix
@@ -426,20 +463,18 @@ void Scene::applyCameraTransformations(Mesh *mesh, Camera *camera)
 
             // Apply view transformation
             Vec4 vertexHomogeneous(vertex->x, vertex->y, vertex->z, 1); // Convert to homogeneous coordinates
-            Vec4 transformedVertex = multiplyMatrix4(vertexHomogeneous, viewMatrix); // Apply view transformation
-
-            // Convert back to 3D coordinates
-            *vertex = Vec3(transformedVertex.x, transformedVertex.y, transformedVertex.z);
+            Vec4 transformedVertex = vertexHomogeneous.multiplyMatrixVec4(viewMatrix, vertexHomogeneous); // Apply view transformation
 
 			// Apply projection transformation
-			Vec4 projectedVertex = multiplyMatrixVec4(projectionMatrix, Vec4(vertex->x, vertex->y, vertex->z, 1));
+			Vec4 projectedVertex = transformedVertex.multiplyMatrixVec4(projectionMatrix, transformedVertex);
 
 			// Perspective divide for perspective projection
 			if (camera->projectionType == 1)
 			{
-                projectedVertex.x /= projectedVertex.w;
-                projectedVertex.y /= projectedVertex.w;
-                projectedVertex.z /= projectedVertex.w;
+                projectedVertex.x /= projectedVertex.t;
+                projectedVertex.y /= projectedVertex.t;
+                projectedVertex.z /= projectedVertex.t;
+				projectedVertex.t /= projectedVertex.t;
             }
 
 			// Convert back to 3D coordinates

@@ -38,6 +38,7 @@ public:
 	void forwardRenderingPipeline(Camera *camera);
 
 	void applyModelTransformations(Mesh *mesh);
+	void applyCameraTransformations(Mesh *mesh, Camera *camera);
 };
 
 #endif

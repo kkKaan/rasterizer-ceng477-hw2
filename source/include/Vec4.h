@@ -8,6 +8,8 @@
 #include "Translation.h"
 #include "Camera.h"
 #include "Mesh.h"
+#include "Triangle.h"
+#include "Matrix4.h"
 
 class Vec4
 {

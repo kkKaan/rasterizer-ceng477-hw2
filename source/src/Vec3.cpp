@@ -67,6 +67,7 @@ Vec3 Vec3::scaleVec3(Vec3 v, Scaling s)
 
 Vec3 Vec3::rotateVec3(Vec3 v, Rotation r)
 {
+    // Rodrigues' rotation formula
     double x = v.x;
     double y = v.y;
     double z = v.z;

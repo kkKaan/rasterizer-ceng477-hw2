@@ -64,27 +64,3 @@ Matrix4 Matrix4::operator*(const Matrix4 &other)
     }
     return result;
 }
-
-Matrix4 Matrix4::createOrthographicProjectionMatrix(Camera *camera)
-{
-    return Matrix4({
-        {2 / (camera->right - camera->left), 0, 0, -(camera->right + camera->left) / (camera->right - camera->left)},
-        {0, 2 / (camera->top - camera->bottom), 0, -(camera->top + camera->bottom) / (camera->top - camera->bottom)},
-        {0, 0, -2 / (camera->far - camera->near), -(camera->far + camera->near) / (camera->far - camera->near)},
-        {0, 0, 0, 1}
-    });
-}
-
-Matrix4 createPerspectiveProjectionMatrix(Camera *camera)
-{
-    double aspectRatio = static_cast<double>(camera->horRes) / camera->verRes;
-    double fovyRadians = 2 * atan((camera->top - camera->bottom) / (2 * camera->near)); // Field of view in radians
-    double f = 1.0 / tan(fovyRadians / 2); // Focal length
-
-    return Matrix4({
-        {f / aspectRatio, 0, 0, 0},
-        {0, f, 0, 0},
-        {0, 0, (camera->far + camera->near) / (camera->near - camera->far), 2 * camera->far * camera->near / (camera->near - camera->far)},
-        {0, 0, -1, 0}
-    });
-}
