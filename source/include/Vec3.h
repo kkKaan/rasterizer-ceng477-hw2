@@ -27,6 +27,7 @@ public:
     double getNthComponent(int n);
 
     friend std::ostream &operator<<(std::ostream &os, const Vec3 &v);
+    Vec3 operator-(const Vec3 &v);
 
     Vec3 translateVec3(Vec3 v, Translation t);
     Vec3 scaleVec3(Vec3 v, Scaling s);

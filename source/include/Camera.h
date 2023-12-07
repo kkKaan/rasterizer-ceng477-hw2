@@ -6,7 +6,6 @@
 
 class Camera
 {
-
 public:
     int cameraId, projectionType, horRes, verRes; // projectionType=0 for orthographic, projectionType=1 for perspective
     Vec3 position, gaze, u, v, w;

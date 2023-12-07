@@ -6,7 +6,6 @@
 
 class Mesh
 {
-
 public:
     int meshId, type, numberOfTransformations, numberOfTriangles; // type=0 for wireframe, type=1 for solid
     std::vector<int> transformationIds;

@@ -484,6 +484,163 @@ void Scene::applyCameraTransformations(Mesh *mesh, Camera *camera)
 }
 
 /*
+	Applies viewport transformation to the mesh.
+*/
+void Scene::applyViewportTransformation(Mesh *mesh, Camera *camera)
+{
+	double viewportMatrixValues[4][4] = { // viewport in the origin. xmin, ymin 0
+		{camera->horRes / 2.0, 0, 0, (camera->horRes - 1) / 2.0},
+		{0, camera->verRes / 2.0, 0, (camera->verRes - 1) / 2.0},
+		{0, 0, 0.5, 0.5},
+		{0, 0, 0, 1}
+	};
+	Matrix4 viewportMatrix = Matrix4(viewportMatrixValues);
+
+	for (int i = 0; i < mesh->numberOfTriangles; i++)
+	{
+		Triangle *triangle = &mesh->triangles[i];
+
+		for (int j = 0; j < 3; j++)
+		{
+			if (triangle->vertexIds[j] == -1)
+			{
+				continue;
+			}
+
+			Vec3 *vertex = this->vertices[triangle->vertexIds[j] - 1];
+
+			// Apply viewport transformation
+			Vec4 vertexHomogeneous(vertex->x, vertex->y, vertex->z, 1); // Convert to homogeneous coordinates
+			Vec4 transformedVertex = vertexHomogeneous.multiplyMatrixVec4(viewportMatrix, vertexHomogeneous); // Apply viewport transformation
+
+			// Convert back to 3D coordinates
+			*vertex = Vec3(transformedVertex.x + 0.5, transformedVertex.y + 0.5, transformedVertex.z);
+		}
+	}
+}
+
+/*
+	Clips triangles that are outside of the view volume. ????????????????????????
+*/
+uint8_t computeOutcode(double x, double y, Camera *camera)
+{
+    uint8_t code = 0;
+    
+    if (x < camera->left) code |= 1;
+    else if (x > camera->right) code |= 2;
+    if (y < camera->bottom) code |= 4;
+    else if (y > camera->top) code |= 8;
+
+    return code;
+}
+
+void clipLine(Vec3 &p0, Vec3 &p1, Camera *camera)
+{
+    double x0 = p0.x, y0 = p0.y;
+    double x1 = p1.x, y1 = p1.y;
+
+    uint8_t outcode0 = computeOutcode(x0, y0, camera);
+    uint8_t outcode1 = computeOutcode(x1, y1, camera);
+    bool accept = false;
+
+    while (true)
+	{
+        if (!(outcode0 | outcode1))
+		{ // Both points inside
+            accept = true;
+            break;
+        }
+		else if (outcode0 & outcode1)
+		{ // Both points share an outside zone
+            break;
+        }
+		else
+		{
+            // At least one endpoint is outside the clipping window
+            double x, y;
+            uint8_t outcodeOut = outcode0 ? outcode0 : outcode1;
+
+            // Find intersection point using formulas y = y0 + slope * (x - x0), x = x0 + (1/slope) * (y - y0)
+			switch (outcodeOut)
+			{
+				case 1:
+					y = y0 + (y1 - y0) * (camera->left - x0) / (x1 - x0);
+					x = camera->left;
+					break;
+				case 2:
+					y = y0 + (y1 - y0) * (camera->right - x0) / (x1 - x0);
+					x = camera->right;
+					break;
+				case 4:
+					x = x0 + (x1 - x0) * (camera->bottom - y0) / (y1 - y0);
+					y = camera->bottom;
+					break;
+				case 8:
+					x = x0 + (x1 - x0) * (camera->top - y0) / (y1 - y0);
+					y = camera->top;
+					break;
+			}
+
+            // Replace point outside clipping area with intersection point
+            if (outcodeOut == outcode0)
+			{
+                x0 = x; y0 = y;
+                outcode0 = computeOutcode(x0, y0, camera);
+            }
+			else
+			{
+                x1 = x; y1 = y;
+                outcode1 = computeOutcode(x1, y1, camera);
+            }
+        }
+    }
+    if (accept)
+	{
+        // Update the points of the line
+        p0.x = x0; p0.y = y0;
+        p1.x = x1; p1.y = y1;
+    }
+    // Else, the line is outside the clipping area and should not be drawn ????????????????????????????????
+}
+
+void Scene::clipTriangles(Mesh *mesh, Camera *camera)
+{
+    for (Triangle &triangle : mesh->triangles)
+	{
+        // Apply clipping to each edge of the triangle
+        clipLine(*vertices[triangle.vertexIds[0] - 1], *vertices[triangle.vertexIds[1] - 1], camera);
+        clipLine(*vertices[triangle.vertexIds[1] - 1], *vertices[triangle.vertexIds[2] - 1], camera);
+        clipLine(*vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1], camera);
+    }
+}
+
+/*
+	Checks if triangle is back facing.
+*/
+bool Scene::isTriangleBackFacing(const Triangle& triangle, Camera *camera)
+{
+    // Calculate the normal of the triangle
+    Vec3 v0 = *vertices[triangle.vertexIds[0] - 1];
+    Vec3 v1 = *vertices[triangle.vertexIds[1] - 1];
+    Vec3 v2 = *vertices[triangle.vertexIds[2] - 1];
+
+    Vec3 edge1 = v1 - v0;
+    Vec3 edge2 = v2 - v0;
+    Vec3 normal = crossProductVec3(edge1, edge2);
+
+    // Calculate view direction (from triangle to camera)
+    Vec3 viewDir = camera->position - v0;
+
+    // Check if the dot product of the normal and view direction is positive
+    return dotProductVec3(normal, viewDir) > 0;
+}
+
+/*
+	Rasterizes triangle.
+*/
+
+
+/*
 	Transformations, clipping, culling, rasterization are done here.
 */
 void Scene::forwardRenderingPipeline(Camera *camera)
@@ -492,11 +649,13 @@ void Scene::forwardRenderingPipeline(Camera *camera)
     {
         applyModelTransformations(mesh);
         applyCameraTransformations(mesh, camera);
-
+		
 		if (mesh->type == 0) // Wireframe
         {
-            clipTriangles(mesh, camera);
+            clipTriangles(mesh, camera); // ??????
         }
+
+		applyViewportTransformation(mesh, camera);
 
         for (Triangle& triangle : mesh->triangles)
         {

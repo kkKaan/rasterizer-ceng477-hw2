@@ -55,6 +55,11 @@ std::ostream &operator<<(std::ostream &os, const Vec3 &v)
     return os;
 }
 
+Vec3 operator-(const Vec3 &v)
+{
+    return Vec3(-v.x, -v.y, -v.z);
+}
+
 Vec3 Vec3::translateVec3(Vec3 v, Translation t)
 {
     return Vec3(v.x + t.tx, v.y + t.ty, v.z + t.tz);

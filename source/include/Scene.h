@@ -39,6 +39,10 @@ public:
 
 	void applyModelTransformations(Mesh *mesh);
 	void applyCameraTransformations(Mesh *mesh, Camera *camera);
+	void applyViewportTransformation(Mesh *mesh, Camera *camera);
+
+	void clipTriangles(Mesh *mesh, Camera *camera);
+	bool isTriangleBackFacing(const Triangle& triangle, Camera *camera);
 };
 
 #endif
