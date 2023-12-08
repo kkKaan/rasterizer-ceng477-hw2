@@ -1,5 +1,15 @@
 #ifndef _SCENE_H_
 #define _SCENE_H_
+
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
+#include <iomanip>
+#include <cstring>
+#include <string>
+#include <vector>
+#include <cmath>
+
 #include "Vec3.h"
 #include "Vec4.h"
 #include "Color.h"
@@ -11,6 +21,7 @@
 #include "Helpers.h"
 #include "Triangle.h"
 #include "Matrix4.h"
+#include "tinyxml2.h"
 
 class Scene
 {
@@ -37,11 +48,11 @@ public:
 	void convertPPMToPNG(std::string ppmFileName);
 	void forwardRenderingPipeline(Camera *camera);
 
-	void applyModelTransformations(Mesh *mesh);
-	void applyCameraTransformations(Mesh *mesh, Camera *camera);
-	void applyViewportTransformation(Mesh *mesh, Camera *camera);
+	void applyModelTransformation(Mesh *mesh, Triangle& triangle);
+	void applyCameraTransformation(Camera *camera, Triangle& triangle);
+	void applyViewportTransformation(Camera *camera, Triangle& triangle);
 
-	void clipTriangles(Mesh *mesh, Camera *camera);
+	void clipTriangle(Camera *camera, Triangle& triangle);
 	bool isTriangleBackFacing(const Triangle& triangle, Camera *camera);
 };
 

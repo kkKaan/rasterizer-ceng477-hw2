@@ -1,15 +1,3 @@
-#include <fstream>
-#include <cstdio>
-#include <cstdlib>
-#include <iomanip>
-#include <cstring>
-#include <string>
-#include <vector>
-#include <cmath>
-
-#include "../include/tinyxml2.h"
-#include "../include/Triangle.h"
-#include "../include/Helpers.h"
 #include "../include/Scene.h"
 
 using namespace tinyxml2;
@@ -383,41 +371,36 @@ Matrix4 createPerspectiveProjectionMatrix(Camera *camera) // ??????
 /*
 	Applies model transformations (translation, rotation, scaling) to the mesh.
 */
-void Scene::applyModelTransformations(Mesh *mesh)
+void Scene::applyModelTransformation(Mesh *mesh, Triangle& triangle)
 {
-	for (int i = 0; i < mesh->numberOfTriangles; i++)
+	for (int j = 0; j < 3; j++)
 	{
-		Triangle *triangle = &mesh->triangles[i];
+		Vec3 *vertex = this->vertices[triangle.vertexIds[j] - 1];
 
-		for (int j = 0; j < 3; j++)
+		for (int k = 0; k < mesh->numberOfTransformations; k++)
 		{
-			Vec3 *vertex = this->vertices[triangle->vertexIds[j] - 1];
+			char transformationType = mesh->transformationTypes[k];
+			int transformationId = mesh->transformationIds[k];
 
-			for (int k = 0; k < mesh->numberOfTransformations; k++)
+			switch (transformationType)
 			{
-				char transformationType = mesh->transformationTypes[k];
-				int transformationId = mesh->transformationIds[k];
-
-				switch (transformationType)
+				case 't':
 				{
-					case 't':
-					{
-						Translation *translation = this->translations[transformationId - 1];
-						*vertex = vertex->translateVec3(*vertex, *translation);
-						break;
-					}
-					case 's':
-					{
-						Scaling *scaling = this->scalings[transformationId - 1];
-						*vertex = vertex->scaleVec3(*vertex, *scaling);
-						break;
-					}
-					case 'r':
-					{
-						Rotation *rotation = this->rotations[transformationId - 1];
-						*vertex = vertex->rotateVec3(*vertex, *rotation);
-						break;
-					}
+					Translation *translation = this->translations[transformationId - 1];
+					*vertex = vertex->translateVec3(*vertex, *translation);
+					break;
+				}
+				case 's':
+				{
+					Scaling *scaling = this->scalings[transformationId - 1];
+					*vertex = vertex->scaleVec3(*vertex, *scaling);
+					break;
+				}
+				case 'r':
+				{
+					Rotation *rotation = this->rotations[transformationId - 1];
+					*vertex = vertex->rotateVec3(*vertex, *rotation);
+					break;
 				}
 			}
 		}
@@ -425,9 +408,9 @@ void Scene::applyModelTransformations(Mesh *mesh)
 }
 
 /*
-	Applies camera transformations (translation, rotation) to the mesh.
+	Applies camera transformations (translation, rotation) to the triangle.
 */
-void Scene::applyCameraTransformations(Mesh *mesh, Camera *camera)
+void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
 {
     // Constructing the rotation part of the view matrix
     double rotationMatrixValues[4][4] = {
@@ -453,40 +436,35 @@ void Scene::applyCameraTransformations(Mesh *mesh, Camera *camera)
     // Combining rotation and translation into the view matrix
     Matrix4 viewMatrix = rotationMatrix * translationMatrix;
 
-    for (int i = 0; i < mesh->numberOfTriangles; i++)
-    {
-        Triangle *triangle = &mesh->triangles[i];
+	for (int j = 0; j < 3; j++)
+	{
+		Vec3 *vertex = this->vertices[triangle.vertexIds[j] - 1];
 
-        for (int j = 0; j < 3; j++)
-        {
-            Vec3 *vertex = this->vertices[triangle->vertexIds[j] - 1];
+		// Apply view transformation
+		Vec4 vertexHomogeneous(vertex->x, vertex->y, vertex->z, 1); // Convert to homogeneous coordinates
+		Vec4 transformedVertex = vertexHomogeneous.multiplyMatrixVec4(viewMatrix, vertexHomogeneous); // Apply view transformation
 
-            // Apply view transformation
-            Vec4 vertexHomogeneous(vertex->x, vertex->y, vertex->z, 1); // Convert to homogeneous coordinates
-            Vec4 transformedVertex = vertexHomogeneous.multiplyMatrixVec4(viewMatrix, vertexHomogeneous); // Apply view transformation
+		// Apply projection transformation
+		Vec4 projectedVertex = transformedVertex.multiplyMatrixVec4(projectionMatrix, transformedVertex);
 
-			// Apply projection transformation
-			Vec4 projectedVertex = transformedVertex.multiplyMatrixVec4(projectionMatrix, transformedVertex);
+		// Perspective divide for perspective projection
+		if (camera->projectionType == 1)
+		{
+			projectedVertex.x /= projectedVertex.t;
+			projectedVertex.y /= projectedVertex.t;
+			projectedVertex.z /= projectedVertex.t;
+			projectedVertex.t /= projectedVertex.t;
+		}
 
-			// Perspective divide for perspective projection
-			if (camera->projectionType == 1)
-			{
-                projectedVertex.x /= projectedVertex.t;
-                projectedVertex.y /= projectedVertex.t;
-                projectedVertex.z /= projectedVertex.t;
-				projectedVertex.t /= projectedVertex.t;
-            }
-
-			// Convert back to 3D coordinates
-			*vertex = Vec3(projectedVertex.x, projectedVertex.y, projectedVertex.z);
-        }
-    }
+		// Convert back to 3D coordinates
+		*vertex = Vec3(projectedVertex.x, projectedVertex.y, projectedVertex.z);
+	}
 }
 
 /*
-	Applies viewport transformation to the mesh.
+	Applies viewport transformation to the triangle.
 */
-void Scene::applyViewportTransformation(Mesh *mesh, Camera *camera)
+void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 {
 	double viewportMatrixValues[4][4] = { // viewport in the origin. xmin, ymin 0
 		{camera->horRes / 2.0, 0, 0, (camera->horRes - 1) / 2.0},
@@ -496,31 +474,26 @@ void Scene::applyViewportTransformation(Mesh *mesh, Camera *camera)
 	};
 	Matrix4 viewportMatrix = Matrix4(viewportMatrixValues);
 
-	for (int i = 0; i < mesh->numberOfTriangles; i++)
+	for (int j = 0; j < 3; j++)
 	{
-		Triangle *triangle = &mesh->triangles[i];
-
-		for (int j = 0; j < 3; j++)
+		if (triangle.vertexIds[j] == -1)
 		{
-			if (triangle->vertexIds[j] == -1)
-			{
-				continue;
-			}
-
-			Vec3 *vertex = this->vertices[triangle->vertexIds[j] - 1];
-
-			// Apply viewport transformation
-			Vec4 vertexHomogeneous(vertex->x, vertex->y, vertex->z, 1); // Convert to homogeneous coordinates
-			Vec4 transformedVertex = vertexHomogeneous.multiplyMatrixVec4(viewportMatrix, vertexHomogeneous); // Apply viewport transformation
-
-			// Convert back to 3D coordinates
-			*vertex = Vec3(transformedVertex.x + 0.5, transformedVertex.y + 0.5, transformedVertex.z);
+			continue;
 		}
+
+		Vec3 *vertex = this->vertices[triangle.vertexIds[j] - 1];
+
+		// Apply viewport transformation
+		Vec4 vertexHomogeneous(vertex->x, vertex->y, vertex->z, 1); // Convert to homogeneous coordinates
+		Vec4 transformedVertex = vertexHomogeneous.multiplyMatrixVec4(viewportMatrix, vertexHomogeneous); // Apply viewport transformation
+
+		// Convert back to 3D coordinates
+		*vertex = Vec3(transformedVertex.x + 0.5, transformedVertex.y + 0.5, transformedVertex.z);
 	}
 }
 
 /*
-	Clips triangles that are outside of the view volume. ????????????????????????
+	Clips triangles that are outside of the view volume.
 */
 uint8_t computeOutcode(double x, double y, Camera *camera)
 {
@@ -599,19 +572,19 @@ void clipLine(Vec3 &p0, Vec3 &p1, Camera *camera)
         // Update the points of the line
         p0.x = x0; p0.y = y0;
         p1.x = x1; p1.y = y1;
+
+		// Draw the line
+
     }
-    // Else, the line is outside the clipping area and should not be drawn ????????????????????????????????
+    // Else, the line is outside the clipping area and should not be drawn 
 }
 
-void Scene::clipTriangles(Mesh *mesh, Camera *camera)
+void Scene::clipTriangle(Camera *camera, Triangle& triangle)
 {
-    for (Triangle &triangle : mesh->triangles)
-	{
-        // Apply clipping to each edge of the triangle
-        clipLine(*vertices[triangle.vertexIds[0] - 1], *vertices[triangle.vertexIds[1] - 1], camera);
-        clipLine(*vertices[triangle.vertexIds[1] - 1], *vertices[triangle.vertexIds[2] - 1], camera);
-        clipLine(*vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1], camera);
-    }
+	// Apply clipping to each edge of the triangle
+	clipLine(*vertices[triangle.vertexIds[0] - 1], *vertices[triangle.vertexIds[1] - 1], camera);
+	clipLine(*vertices[triangle.vertexIds[1] - 1], *vertices[triangle.vertexIds[2] - 1], camera);
+	clipLine(*vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1], camera);
 }
 
 /*
@@ -647,22 +620,26 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 {
     for (Mesh *mesh : this->meshes)
     {
-        applyModelTransformations(mesh);
-        applyCameraTransformations(mesh, camera);
-		applyViewportTransformation(mesh, camera); // ?????
+		for (Triangle& triangle : mesh->triangles)
+		{
+			applyModelTransformation(mesh, triangle);
+			applyCameraTransformation(camera, triangle);
+			applyViewportTransformation(camera, triangle);
 
-		if (mesh->type == 0) // Wireframe
-        {
-            clipTriangles(mesh, camera); // ??????
-        }
+			if (mesh->type == 0) // Wireframe
+			{
+				clipTriangle(camera, triangle);
+			}
+			else // Solid
+			{
+				
+			}
 
-        for (Triangle& triangle : mesh->triangles)
-        {
-            if (!this->cullingEnabled || !isTriangleBackFacing(triangle, camera))
-            {
-                rasterize(triangle, camera);
-            }
-        }
+			if (!this->cullingEnabled || !isTriangleBackFacing(triangle, camera))
+			{
+				// rasterize(triangle, camera);
+			}
+		}
     }
 }
 
