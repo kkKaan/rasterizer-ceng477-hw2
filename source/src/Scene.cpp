@@ -493,9 +493,17 @@ void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 }
 
 /*
+	Draws line between two vertices.
+*/
+void Scene::drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2)
+{
+	
+}
+
+/*
 	Clips triangles that are outside of the view volume.
 */
-uint8_t computeOutcode(double x, double y, Camera *camera)
+uint8_t Scene::computeOutcode(Camera *camera, double x, double y)
 {
     uint8_t code = 0;
     
@@ -507,13 +515,13 @@ uint8_t computeOutcode(double x, double y, Camera *camera)
     return code;
 }
 
-void clipLine(Vec3 &p0, Vec3 &p1, Camera *camera)
+void Scene::clipLine(Camera *camera, Vec3 &p0, Vec3 &p1)
 {
     double x0 = p0.x, y0 = p0.y;
     double x1 = p1.x, y1 = p1.y;
 
-    uint8_t outcode0 = computeOutcode(x0, y0, camera);
-    uint8_t outcode1 = computeOutcode(x1, y1, camera);
+    uint8_t outcode0 = computeOutcode(camera, x0, y0);
+    uint8_t outcode1 = computeOutcode(camera, x1, y1);
     bool accept = false;
 
     while (true)
@@ -558,12 +566,12 @@ void clipLine(Vec3 &p0, Vec3 &p1, Camera *camera)
             if (outcodeOut == outcode0)
 			{
                 x0 = x; y0 = y;
-                outcode0 = computeOutcode(x0, y0, camera);
+                outcode0 = computeOutcode(camera, x0, y0);
             }
 			else
 			{
                 x1 = x; y1 = y;
-                outcode1 = computeOutcode(x1, y1, camera);
+                outcode1 = computeOutcode(camera, x1, y1);
             }
         }
     }
@@ -574,7 +582,7 @@ void clipLine(Vec3 &p0, Vec3 &p1, Camera *camera)
         p1.x = x1; p1.y = y1;
 
 		// Draw the line
-
+		drawLine(camera, &p0, &p1, this->colorsOfVertices[p0.colorId - 1], this->colorsOfVertices[p1.colorId - 1]);
     }
     // Else, the line is outside the clipping area and should not be drawn 
 }
@@ -582,9 +590,9 @@ void clipLine(Vec3 &p0, Vec3 &p1, Camera *camera)
 void Scene::clipTriangle(Camera *camera, Triangle& triangle)
 {
 	// Apply clipping to each edge of the triangle
-	clipLine(*vertices[triangle.vertexIds[0] - 1], *vertices[triangle.vertexIds[1] - 1], camera);
-	clipLine(*vertices[triangle.vertexIds[1] - 1], *vertices[triangle.vertexIds[2] - 1], camera);
-	clipLine(*vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1], camera);
+	clipLine(camera, *vertices[triangle.vertexIds[0] - 1], *vertices[triangle.vertexIds[1] - 1]);
+	clipLine(camera, *vertices[triangle.vertexIds[1] - 1], *vertices[triangle.vertexIds[2] - 1]);
+	clipLine(camera, *vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1]);
 }
 
 /*

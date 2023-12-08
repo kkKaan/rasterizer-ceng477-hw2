@@ -52,7 +52,11 @@ public:
 	void applyCameraTransformation(Camera *camera, Triangle& triangle);
 	void applyViewportTransformation(Camera *camera, Triangle& triangle);
 
+	uint8_t computeOutcode(Camera *camera, double x, double y);
+	void clipLine(Camera *camera, Vec3 &p0, Vec3 &p1);
 	void clipTriangle(Camera *camera, Triangle& triangle);
+	void drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2);
+
 	bool isTriangleBackFacing(const Triangle& triangle, Camera *camera);
 };
 
