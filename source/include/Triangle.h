@@ -18,8 +18,6 @@ public:
     Triangle(int vid1, int vid2, int vid3);
     Triangle(const Triangle &other);
     friend std::ostream &operator<<(std::ostream &os, const Triangle &t);
-
-    Triangle transformTriangleToCameraSpace(Mesh mesh, Camera camera);
 };
 
 #endif

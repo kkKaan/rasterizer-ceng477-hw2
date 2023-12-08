@@ -649,13 +649,12 @@ void Scene::forwardRenderingPipeline(Camera *camera)
     {
         applyModelTransformations(mesh);
         applyCameraTransformations(mesh, camera);
-		
+		applyViewportTransformation(mesh, camera); // ?????
+
 		if (mesh->type == 0) // Wireframe
         {
             clipTriangles(mesh, camera); // ??????
         }
-
-		applyViewportTransformation(mesh, camera);
 
         for (Triangle& triangle : mesh->triangles)
         {

@@ -27,8 +27,3 @@ std::ostream &operator<<(std::ostream &os, const Triangle &t)
     os << std::fixed << std::setprecision(0) << "Triangle with vertices (" << t.vertexIds[0] << ", " << t.vertexIds[1] << ", " << t.vertexIds[2] << ")";
     return os;
 }
-
-Triangle Triangle::transformTriangleToCameraSpace(Mesh mesh, Camera camera)
-{
-
-}
