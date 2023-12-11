@@ -10,18 +10,18 @@
 #include <vector>
 #include <cmath>
 
-#include "Vec3.h"
-#include "Vec4.h"
+#include "Camera.h"
 #include "Color.h"
+#include "Helpers.h"
+#include "Matrix4.h"
+#include "Mesh.h"
 #include "Rotation.h"
 #include "Scaling.h"
-#include "Translation.h"
-#include "Camera.h"
-#include "Mesh.h"
-#include "Helpers.h"
-#include "Triangle.h"
-#include "Matrix4.h"
 #include "tinyxml2.h"
+#include "Translation.h"
+#include "Triangle.h"
+#include "Vec3.h"
+#include "Vec4.h"
 
 class Scene
 {

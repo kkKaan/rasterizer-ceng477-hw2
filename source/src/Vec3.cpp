@@ -55,7 +55,7 @@ std::ostream &operator<<(std::ostream &os, const Vec3 &v)
     return os;
 }
 
-Vec3 operator-(const Vec3 &v)
+Vec3 Vec3::operator-(const Vec3 &v)
 {
     return Vec3(-v.x, -v.y, -v.z);
 }

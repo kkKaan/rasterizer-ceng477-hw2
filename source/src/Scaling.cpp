@@ -1,7 +1,8 @@
 #include <iomanip>
 #include "../include/Scaling.h"
 
-Scaling::Scaling() {
+Scaling::Scaling()
+{
     this->scalingId = -1;
     this->sx = 0;
     this->sy = 0;

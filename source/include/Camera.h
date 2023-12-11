@@ -1,7 +1,9 @@
 #ifndef __CAMERA_H__
 #define __CAMERA_H__
+
 #define ORTOGRAPHIC_PROJECTION 0
 #define PERSPECTIVE_PROJECTION 1
+
 #include "Vec3.h"
 
 class Camera

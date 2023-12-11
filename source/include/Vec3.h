@@ -1,17 +1,13 @@
 #ifndef __VEC3_H__
 #define __VEC3_H__
+
 #define NO_COLOR -1
+
 #include <cmath>
-#include "Vec4.h"
-#include "Color.h"
+
 #include "Rotation.h"
 #include "Scaling.h"
 #include "Translation.h"
-#include "Camera.h"
-#include "Mesh.h"
-#include "Scene.h"
-#include "Triangle.h"
-#include "Matrix4.h"
 
 class Vec3
 {

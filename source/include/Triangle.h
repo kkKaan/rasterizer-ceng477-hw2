@@ -1,13 +1,5 @@
 #ifndef __TRIANGLE_H__
 #define __TRIANGLE_H__
-#include "Vec3.h"
-#include "Vec4.h"
-#include "Color.h"
-#include "Rotation.h"
-#include "Scaling.h"
-#include "Translation.h"
-#include "Camera.h"
-#include "Mesh.h"
 
 class Triangle
 {

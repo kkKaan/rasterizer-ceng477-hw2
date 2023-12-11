@@ -1,7 +1,9 @@
 #ifndef __MESH_H__
 #define __MESH_H__
+
 #define WIREFRAME_MESH 0
 #define SOLID_MESH 1
+
 #include "Triangle.h"
 
 class Mesh

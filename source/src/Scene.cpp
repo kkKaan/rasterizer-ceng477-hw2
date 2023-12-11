@@ -615,7 +615,7 @@ Color Scene::interpolateColor(const Color &c1, const Color &c2, double t)
     double r = c1.r + (c2.r - c1.r) * t;
     double g = c1.g + (c2.g - c1.g) * t;
     double b = c1.b + (c2.b - c1.b) * t;
-    return Color(r, g, b);
+    return Color(min(255, (int)r), min(255, (int)g), min(255, (int)b)); // ????????????
 }
 
 /*
