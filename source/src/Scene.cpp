@@ -636,7 +636,7 @@ bool Scene::isTriangleBackFacing(const Triangle& triangle, Camera *camera)
     Vec3 viewDir = camera->position - v0;
 
     // Check if the dot product of the normal and view direction is positive
-    return dotProductVec3(normal, viewDir) > 0;
+    return dotProductVec3(normal, viewDir) > 0; // ?????
 }
 
 /*
@@ -651,18 +651,6 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 {
     for (Mesh *mesh : this->meshes)
     {
-		// for (Triangle& triangle : mesh->triangles) applyModelTransformation(mesh, triangle);
-		// for (Triangle& triangle : mesh->triangles) applyCameraTransformation(camera, triangle);
-		// for (Triangle& triangle : mesh->triangles) applyViewportTransformation(camera, triangle);
-
-		// if (mesh->type == 0) // wireframe
-		// {
-			
-		// }
-		// else
-		// {
-			
-		// }
 		for (Triangle& triangle : mesh->triangles)
         {
             // Apply transformations
