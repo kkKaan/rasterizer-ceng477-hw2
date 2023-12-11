@@ -24,7 +24,7 @@ public:
 
     Vec4 translateVec4(Vec4 v, Translation t);
     Vec4 scaleVec4(Vec4 v, Scaling s);
-    Vec4 multiplyMatrixVec4(Matrix4 m, Vec4 v);
+    // Vec4 multiplyMatrixVec4(Matrix4 m, Vec4 v);
 };
 
 #endif

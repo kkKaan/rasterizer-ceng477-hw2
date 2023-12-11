@@ -2,12 +2,14 @@
 #define __VEC3_H__
 
 #define NO_COLOR -1
+#define M_PI 3.14159265358979323846
 
 #include <cmath>
 
 #include "Rotation.h"
 #include "Scaling.h"
 #include "Translation.h"
+// #include "Helpers.h"
 
 class Vec3
 {

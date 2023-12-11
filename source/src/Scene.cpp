@@ -352,7 +352,7 @@ Matrix4 createOrthographicProjectionMatrix(Camera *camera)
 /*
 	Creates perspective projection matrix.
 */
-Matrix4 createPerspectiveProjectionMatrix(Camera *camera) // ??????
+Matrix4 createPerspectiveProjectionMatrix(Camera *camera)
 {
     double aspectRatio = static_cast<double>(camera->horRes) / camera->verRes;
     double fovyRadians = 2 * atan((camera->top - camera->bottom) / (2 * camera->near)); // Field of view in radians
@@ -434,7 +434,7 @@ void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
 	Matrix4 projectionMatrix = (camera->projectionType == 0) ? createOrthographicProjectionMatrix(camera) : createPerspectiveProjectionMatrix(camera);
 
     // Combining rotation and translation into the view matrix
-    Matrix4 viewMatrix = rotationMatrix * translationMatrix;
+    Matrix4 viewMatrix = multiplyMatrixWithMatrix(rotationMatrix, translationMatrix);
 
 	Vec3 *vertex1 = this->vertices[triangle.vertexIds[0] - 1];
 	Vec3 *vertex2 = this->vertices[triangle.vertexIds[1] - 1];
@@ -446,16 +446,16 @@ void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
 	Vec4 vertex3Homogeneous(vertex3->x, vertex3->y, vertex3->z, 1); 
 
 	// Apply view transformation
-	Vec4 transformedVertex1 = vertex1Homogeneous.multiplyMatrixVec4(viewMatrix, vertex1Homogeneous); 
-	Vec4 transformedVertex2 = vertex2Homogeneous.multiplyMatrixVec4(viewMatrix, vertex2Homogeneous); 
-	Vec4 transformedVertex3 = vertex3Homogeneous.multiplyMatrixVec4(viewMatrix, vertex3Homogeneous); 
+	Vec4 transformedVertex1 = multiplyMatrixWithVec4(viewMatrix, vertex1Homogeneous);
+	Vec4 transformedVertex2 = multiplyMatrixWithVec4(viewMatrix, vertex2Homogeneous);
+	Vec4 transformedVertex3 = multiplyMatrixWithVec4(viewMatrix, vertex3Homogeneous);
 
 	// Apply projection transformation
-	Vec4 projectedVertex1 = transformedVertex1.multiplyMatrixVec4(projectionMatrix, transformedVertex1);
-	Vec4 projectedVertex2 = transformedVertex2.multiplyMatrixVec4(projectionMatrix, transformedVertex2);
-	Vec4 projectedVertex3 = transformedVertex3.multiplyMatrixVec4(projectionMatrix, transformedVertex3);
+	Vec4 projectedVertex1 = multiplyMatrixWithVec4(projectionMatrix, transformedVertex1);
+	Vec4 projectedVertex2 = multiplyMatrixWithVec4(projectionMatrix, transformedVertex2);
+	Vec4 projectedVertex3 = multiplyMatrixWithVec4(projectionMatrix, transformedVertex3);
 
-	// Check if the triangle is back facing
+	// Check if the triangle is back facing ?????????????????????
 	if (this->cullingEnabled && isTriangleBackFacing(triangle, camera))
 	{
 		return;
@@ -488,7 +488,7 @@ void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
 */
 void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 {
-	double viewportMatrixValues[4][4] = { // viewport in the origin. xmin, ymin 0
+	double viewportMatrixValues[4][4] = { // viewport in the origin. xmin, ymin 0 
 		{camera->horRes / 2.0, 0, 0, (camera->horRes - 1) / 2.0},
 		{0, camera->verRes / 2.0, 0, (camera->verRes - 1) / 2.0},
 		{0, 0, 0.5, 0.5},
@@ -506,14 +506,14 @@ void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 	Vec4 vertex3Homogeneous(vertex3->x, vertex3->y, vertex3->z, 1);
 
 	// Apply viewport transformation
-	Vec4 transformedVertex1 = vertex1Homogeneous.multiplyMatrixVec4(viewportMatrix, vertex1Homogeneous);
-	Vec4 transformedVertex2 = vertex2Homogeneous.multiplyMatrixVec4(viewportMatrix, vertex2Homogeneous);
-	Vec4 transformedVertex3 = vertex3Homogeneous.multiplyMatrixVec4(viewportMatrix, vertex3Homogeneous);
+	Vec4 transformedVertex1 = multiplyMatrixWithVec4(viewportMatrix, vertex1Homogeneous);
+	Vec4 transformedVertex2 = multiplyMatrixWithVec4(viewportMatrix, vertex2Homogeneous);
+	Vec4 transformedVertex3 = multiplyMatrixWithVec4(viewportMatrix, vertex3Homogeneous);
 
 	// Convert back to 3D coordinates
-	*vertex1 = Vec3(transformedVertex1.x + 0.5, transformedVertex1.y + 0.5, transformedVertex1.z);
-	*vertex2 = Vec3(transformedVertex2.x + 0.5, transformedVertex2.y + 0.5, transformedVertex2.z);
-	*vertex3 = Vec3(transformedVertex3.x + 0.5, transformedVertex3.y + 0.5, transformedVertex3.z);
+	*vertex1 = Vec3(transformedVertex1.x, transformedVertex1.y, transformedVertex1.z);
+	*vertex2 = Vec3(transformedVertex2.x, transformedVertex2.y, transformedVertex2.z);
+	*vertex3 = Vec3(transformedVertex3.x, transformedVertex3.y, transformedVertex3.z);
 }
 
 /*
@@ -665,7 +665,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
                 Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1]; Vec3 &v2temp = v2;
 
                 // Clip each edge of the triangle
-                if (liangBarskyClip(camera, v0, v1))
+                if (liangBarskyClip(camera, v0, v1)) // ???
                     drawLine(camera, &v0, &v1, colorsOfVertices[v0.colorId - 1], colorsOfVertices[v1.colorId - 1]);
                 if (liangBarskyClip(camera, v1temp, v2))
                     drawLine(camera, &v1temp, &v2, colorsOfVertices[v1.colorId - 1], colorsOfVertices[v2.colorId - 1]);

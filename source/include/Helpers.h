@@ -6,7 +6,7 @@
 #include "Matrix4.h"
 #include "Vec3.h"
 #include "Vec4.h"
-#include "Scene.h"
+// #include "Scene.h"
 
 /*
  * Calculate cross product of vec3 a, vec3 b and return resulting vec3.
@@ -73,5 +73,10 @@ Matrix4 multiplyMatrixWithMatrix(Matrix4 m1, Matrix4 m2);
  * Multiply matrix m (Matrix4) with vector v (vec4) and store the result in vector r (vec4).
  */
 Vec4 multiplyMatrixWithVec4(Matrix4 m, Vec4 v);
+
+/*
+    Handle the case where the result of a calculation is -0.0.
+*/
+double adjustForNegativeZero(double value);
 
 #endif

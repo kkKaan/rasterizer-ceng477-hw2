@@ -60,14 +60,24 @@ Vec3 Vec3::operator-(const Vec3 &v)
     return Vec3(-v.x, -v.y, -v.z);
 }
 
+double adjustForNegativeZero(double value)
+{
+    const double threshold = 1e-7;  // Threshold for considering a value as zero
+    if (abs(value) < threshold)
+    {
+        return 0.0;
+    }
+    return value;
+}
+
 Vec3 Vec3::translateVec3(Vec3 v, Translation t)
 {
-    return Vec3(v.x + t.tx, v.y + t.ty, v.z + t.tz);
+    return Vec3(adjustForNegativeZero(v.x + t.tx), adjustForNegativeZero(v.y + t.ty), adjustForNegativeZero(v.z + t.tz));
 }
 
 Vec3 Vec3::scaleVec3(Vec3 v, Scaling s)
 {
-    return Vec3(v.x * s.sx, v.y * s.sy, v.z * s.sz);
+    return Vec3(adjustForNegativeZero(v.x * s.sx), adjustForNegativeZero(v.y * s.sy), adjustForNegativeZero(v.z * s.sz));
 }
 
 Vec3 Vec3::rotateVec3(Vec3 v, Rotation r)
@@ -77,8 +87,10 @@ Vec3 Vec3::rotateVec3(Vec3 v, Rotation r)
     double y = v.y;
     double z = v.z;
 
-    double cosTheta = cos(r.angle);
-    double sinTheta = sin(r.angle);
+    double angle = r.angle * M_PI / 180.0;
+
+    double cosTheta = cos(angle);
+    double sinTheta = sin(angle);
 
     double xPrime = (cosTheta + (1 - cosTheta) * pow(r.ux, 2)) * x + ((1 - cosTheta) * r.ux * r.uy - r.uz * sinTheta) * y + ((1 - cosTheta) * r.ux * r.uz + r.uy * sinTheta) * z;
     double yPrime = ((1 - cosTheta) * r.ux * r.uy + r.uz * sinTheta) * x + (cosTheta + (1 - cosTheta) * pow(r.uy, 2)) * y + ((1 - cosTheta) * r.uy * r.uz - r.ux * sinTheta) * z;
