@@ -412,7 +412,7 @@ void Scene::applyModelTransformation(Mesh *mesh, Triangle& triangle)
 */
 void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
 {
-    // Constructing the rotation part of the view matrix
+	// Constructing the rotation part of the view matrix
     double rotationMatrixValues[4][4] = {
 		{camera->u.x, camera->u.y, camera->u.z, 0},
 		{camera->v.x, camera->v.y, camera->v.z, 0},
@@ -436,29 +436,51 @@ void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
     // Combining rotation and translation into the view matrix
     Matrix4 viewMatrix = rotationMatrix * translationMatrix;
 
-	for (int j = 0; j < 3; j++)
+	Vec3 *vertex1 = this->vertices[triangle.vertexIds[0] - 1];
+	Vec3 *vertex2 = this->vertices[triangle.vertexIds[1] - 1];
+	Vec3 *vertex3 = this->vertices[triangle.vertexIds[2] - 1];
+
+	// Convert to homogeneous coordinates
+	Vec4 vertex1Homogeneous(vertex1->x, vertex1->y, vertex1->z, 1); 
+	Vec4 vertex2Homogeneous(vertex2->x, vertex2->y, vertex2->z, 1); 
+	Vec4 vertex3Homogeneous(vertex3->x, vertex3->y, vertex3->z, 1); 
+
+	// Apply view transformation
+	Vec4 transformedVertex1 = vertex1Homogeneous.multiplyMatrixVec4(viewMatrix, vertex1Homogeneous); 
+	Vec4 transformedVertex2 = vertex2Homogeneous.multiplyMatrixVec4(viewMatrix, vertex2Homogeneous); 
+	Vec4 transformedVertex3 = vertex3Homogeneous.multiplyMatrixVec4(viewMatrix, vertex3Homogeneous); 
+
+	// Apply projection transformation
+	Vec4 projectedVertex1 = transformedVertex1.multiplyMatrixVec4(projectionMatrix, transformedVertex1);
+	Vec4 projectedVertex2 = transformedVertex2.multiplyMatrixVec4(projectionMatrix, transformedVertex2);
+	Vec4 projectedVertex3 = transformedVertex3.multiplyMatrixVec4(projectionMatrix, transformedVertex3);
+
+	// Check if the triangle is back facing
+	if (this->cullingEnabled && isTriangleBackFacing(triangle, camera))
 	{
-		Vec3 *vertex = this->vertices[triangle.vertexIds[j] - 1];
-
-		// Apply view transformation
-		Vec4 vertexHomogeneous(vertex->x, vertex->y, vertex->z, 1); // Convert to homogeneous coordinates
-		Vec4 transformedVertex = vertexHomogeneous.multiplyMatrixVec4(viewMatrix, vertexHomogeneous); // Apply view transformation
-
-		// Apply projection transformation
-		Vec4 projectedVertex = transformedVertex.multiplyMatrixVec4(projectionMatrix, transformedVertex);
-
-		// Perspective divide for perspective projection
-		if (camera->projectionType == 1)
-		{
-			projectedVertex.x /= projectedVertex.t;
-			projectedVertex.y /= projectedVertex.t;
-			projectedVertex.z /= projectedVertex.t;
-			projectedVertex.t /= projectedVertex.t;
-		}
-
-		// Convert back to 3D coordinates
-		*vertex = Vec3(projectedVertex.x, projectedVertex.y, projectedVertex.z);
+		return;
 	}
+
+	// Perspective division
+	if (camera->projectionType == 1)
+	{
+		projectedVertex1.x /= projectedVertex1.t;
+		projectedVertex1.y /= projectedVertex1.t;
+		projectedVertex1.z /= projectedVertex1.t;
+
+		projectedVertex2.x /= projectedVertex2.t;
+		projectedVertex2.y /= projectedVertex2.t;
+		projectedVertex2.z /= projectedVertex2.t;
+
+		projectedVertex3.x /= projectedVertex3.t;
+		projectedVertex3.y /= projectedVertex3.t;
+		projectedVertex3.z /= projectedVertex3.t;
+	}
+
+	// Convert back to 3D coordinates
+	*vertex1 = Vec3(projectedVertex1.x, projectedVertex1.y, projectedVertex1.z);
+	*vertex2 = Vec3(projectedVertex2.x, projectedVertex2.y, projectedVertex2.z);
+	*vertex3 = Vec3(projectedVertex3.x, projectedVertex3.y, projectedVertex3.z);
 }
 
 /*
@@ -474,22 +496,76 @@ void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 	};
 	Matrix4 viewportMatrix = Matrix4(viewportMatrixValues);
 
-	for (int j = 0; j < 3; j++)
-	{
-		if (triangle.vertexIds[j] == -1)
-		{
-			continue;
-		}
+	Vec3 *vertex1 = this->vertices[triangle.vertexIds[0] - 1];
+	Vec3 *vertex2 = this->vertices[triangle.vertexIds[1] - 1];
+	Vec3 *vertex3 = this->vertices[triangle.vertexIds[2] - 1];
 
-		Vec3 *vertex = this->vertices[triangle.vertexIds[j] - 1];
+	// Convert to homogeneous coordinates
+	Vec4 vertex1Homogeneous(vertex1->x, vertex1->y, vertex1->z, 1);
+	Vec4 vertex2Homogeneous(vertex2->x, vertex2->y, vertex2->z, 1);
+	Vec4 vertex3Homogeneous(vertex3->x, vertex3->y, vertex3->z, 1);
 
-		// Apply viewport transformation
-		Vec4 vertexHomogeneous(vertex->x, vertex->y, vertex->z, 1); // Convert to homogeneous coordinates
-		Vec4 transformedVertex = vertexHomogeneous.multiplyMatrixVec4(viewportMatrix, vertexHomogeneous); // Apply viewport transformation
+	// Apply viewport transformation
+	Vec4 transformedVertex1 = vertex1Homogeneous.multiplyMatrixVec4(viewportMatrix, vertex1Homogeneous);
+	Vec4 transformedVertex2 = vertex2Homogeneous.multiplyMatrixVec4(viewportMatrix, vertex2Homogeneous);
+	Vec4 transformedVertex3 = vertex3Homogeneous.multiplyMatrixVec4(viewportMatrix, vertex3Homogeneous);
 
-		// Convert back to 3D coordinates
-		*vertex = Vec3(transformedVertex.x + 0.5, transformedVertex.y + 0.5, transformedVertex.z);
-	}
+	// Convert back to 3D coordinates
+	*vertex1 = Vec3(transformedVertex1.x + 0.5, transformedVertex1.y + 0.5, transformedVertex1.z);
+	*vertex2 = Vec3(transformedVertex2.x + 0.5, transformedVertex2.y + 0.5, transformedVertex2.z);
+	*vertex3 = Vec3(transformedVertex3.x + 0.5, transformedVertex3.y + 0.5, transformedVertex3.z);
+}
+
+/*
+	Liang-Barsky Algorithm for clipping	
+*/
+bool Scene::liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1)
+{
+    double dx = p1.x - p0.x;
+    double dy = p1.y - p0.y;
+    double p[4], q[4];
+    double t0 = 0.0;
+    double t1 = 1.0;
+
+    p[0] = -dx; q[0] = p0.x - camera->left;
+    p[1] = dx;  q[1] = camera->right - p0.x;
+    p[2] = -dy; q[2] = p0.y - camera->bottom;
+    p[3] = dy;  q[3] = camera->top - p0.y;
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (p[i] == 0)
+        {
+            if (q[i] < 0) return false; // Line is parallel and outside
+        }
+        else
+        {
+            double t = q[i] / p[i];
+            if (p[i] < 0)
+            {
+                if (t > t1) return false; // Line is outside
+                else if (t > t0) t0 = t; // Line enters clipping area
+            }
+            else
+            {
+                if (t < t0) return false; // Line is outside
+                else if (t < t1) t1 = t; // Line exits clipping area
+            }
+        }
+    }
+
+    if (t0 > 0)
+    {
+        p0.x += t0 * dx;
+        p0.y += t0 * dy;
+    }
+    if (t1 < 1)
+    {
+        p1.x = p0.x + t1 * dx;
+        p1.y = p0.y + t1 * dy;
+    }
+
+    return true; // Line is inside or intersects the clipping area
 }
 
 /*
@@ -497,102 +573,49 @@ void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 */
 void Scene::drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2)
 {
-	
-}
+    // Convert Vec3 to 2D screen coordinates
+    int x1 = static_cast<int>(v1->x);
+    int y1 = static_cast<int>(v1->y);
+    int x2 = static_cast<int>(v2->x);
+    int y2 = static_cast<int>(v2->y);
 
-/*
-	Clips triangles that are outside of the view volume.
-*/
-uint8_t Scene::computeOutcode(Camera *camera, double x, double y)
-{
-    uint8_t code = 0;
-    
-    if (x < camera->left) code |= 1;
-    else if (x > camera->right) code |= 2;
-    if (y < camera->bottom) code |= 4;
-    else if (y > camera->top) code |= 8;
-
-    return code;
-}
-
-void Scene::clipLine(Camera *camera, Vec3 &p0, Vec3 &p1)
-{
-    double x0 = p0.x, y0 = p0.y;
-    double x1 = p1.x, y1 = p1.y;
-
-    uint8_t outcode0 = computeOutcode(camera, x0, y0);
-    uint8_t outcode1 = computeOutcode(camera, x1, y1);
-    bool accept = false;
+    int dx = abs(x2 - x1);
+    int dy = abs(y2 - y1);
+    int sx = x1 < x2 ? 1 : -1;
+    int sy = y1 < y2 ? 1 : -1;
+    int err = dx - dy;
 
     while (true)
 	{
-        if (!(outcode0 | outcode1))
-		{ // Both points inside
-            accept = true;
-            break;
-        }
-		else if (outcode0 & outcode1)
-		{ // Both points share an outside zone
-            break;
-        }
-		else
+        // Set pixel color at (x1, y1)
+        if (x1 >= 0 && x1 < camera->horRes && y1 >= 0 && y1 < camera->verRes)
 		{
-            // At least one endpoint is outside the clipping window
-            double x, y;
-            uint8_t outcodeOut = outcode0 ? outcode0 : outcode1;
-
-            // Find intersection point using formulas y = y0 + slope * (x - x0), x = x0 + (1/slope) * (y - y0)
-			switch (outcodeOut)
-			{
-				case 1:
-					y = y0 + (y1 - y0) * (camera->left - x0) / (x1 - x0);
-					x = camera->left;
-					break;
-				case 2:
-					y = y0 + (y1 - y0) * (camera->right - x0) / (x1 - x0);
-					x = camera->right;
-					break;
-				case 4:
-					x = x0 + (x1 - x0) * (camera->bottom - y0) / (y1 - y0);
-					y = camera->bottom;
-					break;
-				case 8:
-					x = x0 + (x1 - x0) * (camera->top - y0) / (y1 - y0);
-					y = camera->top;
-					break;
-			}
-
-            // Replace point outside clipping area with intersection point
-            if (outcodeOut == outcode0)
-			{
-                x0 = x; y0 = y;
-                outcode0 = computeOutcode(camera, x0, y0);
-            }
-			else
-			{
-                x1 = x; y1 = y;
-                outcode1 = computeOutcode(camera, x1, y1);
-            }
+            // Interpolate color based on the position between v1 and v2
+            double t = sqrt(pow(x1 - v1->x, 2) + pow(y1 - v1->y, 2)) / sqrt(pow(v2->x - v1->x, 2) + pow(v2->y - v1->y, 2));
+            Color interpolatedColor = interpolateColor(*c1, *c2, t);
+            assignColorToPixel(x1, y1, interpolatedColor);
         }
-    }
-    if (accept)
-	{
-        // Update the points of the line
-        p0.x = x0; p0.y = y0;
-        p1.x = x1; p1.y = y1;
 
-		// Draw the line
-		drawLine(camera, &p0, &p1, this->colorsOfVertices[p0.colorId - 1], this->colorsOfVertices[p1.colorId - 1]); // ????
+        if (x1 == x2 && y1 == y2) break;
+
+        int e2 = 2 * err;
+        if (e2 > -dy)
+		{
+			err -= dy; x1 += sx;
+		}
+        if (e2 < dx)
+		{
+			err += dx; y1 += sy;
+		}
     }
-    // Else, the line is outside the clipping area and should not be drawn 
 }
 
-void Scene::clipTriangle(Camera *camera, Triangle& triangle)
+Color Scene::interpolateColor(const Color &c1, const Color &c2, double t)
 {
-	// Apply clipping to each edge of the triangle
-	clipLine(camera, *vertices[triangle.vertexIds[0] - 1], *vertices[triangle.vertexIds[1] - 1]);
-	clipLine(camera, *vertices[triangle.vertexIds[1] - 1], *vertices[triangle.vertexIds[2] - 1]);
-	clipLine(camera, *vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1]);
+    double r = c1.r + (c2.r - c1.r) * t;
+    double g = c1.g + (c2.g - c1.g) * t;
+    double b = c1.b + (c2.b - c1.b) * t;
+    return Color(r, g, b);
 }
 
 /*
@@ -607,7 +630,7 @@ bool Scene::isTriangleBackFacing(const Triangle& triangle, Camera *camera)
 
     Vec3 edge1 = v1 - v0;
     Vec3 edge2 = v2 - v0;
-    Vec3 normal = crossProductVec3(edge1, edge2);
+    Vec3 normal = normalizeVec3(crossProductVec3(edge1, edge2));
 
     // Calculate view direction (from triangle to camera)
     Vec3 viewDir = camera->position - v0;
@@ -628,26 +651,138 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 {
     for (Mesh *mesh : this->meshes)
     {
+		// for (Triangle& triangle : mesh->triangles) applyModelTransformation(mesh, triangle);
+		// for (Triangle& triangle : mesh->triangles) applyCameraTransformation(camera, triangle);
+		// for (Triangle& triangle : mesh->triangles) applyViewportTransformation(camera, triangle);
+
+		// if (mesh->type == 0) // wireframe
+		// {
+			
+		// }
+		// else
+		// {
+			
+		// }
 		for (Triangle& triangle : mesh->triangles)
-		{
-			applyModelTransformation(mesh, triangle);
-			applyCameraTransformation(camera, triangle);
-			applyViewportTransformation(camera, triangle);
+        {
+            // Apply transformations
+            applyModelTransformation(mesh, triangle);
+            applyCameraTransformation(camera, triangle);
+            applyViewportTransformation(camera, triangle);
 
-			if (mesh->type == 0) // Wireframe
-			{
-				clipTriangle(camera, triangle);
-			}
-			else // Solid
-			{
-				
-			}
+            if (mesh->type == 0) // wireframe
+            {
+                Vec3 &v0 = *vertices[triangle.vertexIds[0] - 1]; Vec3 &v0temp = v0;
+                Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1]; Vec3 &v1temp = v1;
+                Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1]; Vec3 &v2temp = v2;
 
-			if (!this->cullingEnabled || !isTriangleBackFacing(triangle, camera))
-			{
-				// rasterize(triangle, camera);
-			}
-		}
+                // Clip each edge of the triangle
+                if (liangBarskyClip(camera, v0, v1))
+                    drawLine(camera, &v0, &v1, colorsOfVertices[v0.colorId - 1], colorsOfVertices[v1.colorId - 1]);
+                if (liangBarskyClip(camera, v1temp, v2))
+                    drawLine(camera, &v1temp, &v2, colorsOfVertices[v1.colorId - 1], colorsOfVertices[v2.colorId - 1]);
+                if (liangBarskyClip(camera, v2temp, v0temp))
+					drawLine(camera, &v2temp, &v0temp, colorsOfVertices[v2.colorId - 1], colorsOfVertices[v0.colorId - 1]);
+            }
+            else // solid
+            {
+                // Rasterize the triangle
+            }
+        }
     }
 }
 
+// /*
+// 	Clips triangles that are outside of the view volume.
+// */
+// uint8_t Scene::computeOutcode(Camera *camera, double x, double y)
+// {
+//     uint8_t code = 0;
+    
+//     if (x < camera->left) code |= 1;
+//     else if (x > camera->right) code |= 2;
+//     if (y < camera->bottom) code |= 4;
+//     else if (y > camera->top) code |= 8;
+
+//     return code;
+// }
+
+// void Scene::clipLine(Camera *camera, Vec3 &p0, Vec3 &p1)
+// {
+//     double x0 = p0.x, y0 = p0.y;
+//     double x1 = p1.x, y1 = p1.y;
+
+//     uint8_t outcode0 = computeOutcode(camera, x0, y0);
+//     uint8_t outcode1 = computeOutcode(camera, x1, y1);
+//     bool accept = false;
+
+//     while (true)
+// 	{
+//         if (!(outcode0 | outcode1))
+// 		{ // Both points inside
+//             accept = true;
+//             break;
+//         }
+// 		else if (outcode0 & outcode1)
+// 		{ // Both points share an outside zone
+//             break;
+//         }
+// 		else
+// 		{
+//             // At least one endpoint is outside the clipping window
+//             double x, y;
+//             uint8_t outcodeOut = outcode0 ? outcode0 : outcode1;
+
+//             // Find intersection point using formulas y = y0 + slope * (x - x0), x = x0 + (1/slope) * (y - y0)
+// 			switch (outcodeOut)
+// 			{
+// 				case 1:
+// 					y = y0 + (y1 - y0) * (camera->left - x0) / (x1 - x0);
+// 					x = camera->left;
+// 					break;
+// 				case 2:
+// 					y = y0 + (y1 - y0) * (camera->right - x0) / (x1 - x0);
+// 					x = camera->right;
+// 					break;
+// 				case 4:
+// 					x = x0 + (x1 - x0) * (camera->bottom - y0) / (y1 - y0);
+// 					y = camera->bottom;
+// 					break;
+// 				case 8:
+// 					x = x0 + (x1 - x0) * (camera->top - y0) / (y1 - y0);
+// 					y = camera->top;
+// 					break;
+// 			}
+
+//             // Replace point outside clipping area with intersection point
+//             if (outcodeOut == outcode0)
+// 			{
+//                 x0 = x; y0 = y;
+//                 outcode0 = computeOutcode(camera, x0, y0);
+//             }
+// 			else
+// 			{
+//                 x1 = x; y1 = y;
+//                 outcode1 = computeOutcode(camera, x1, y1);
+//             }
+//         }
+//     }
+//     if (accept)
+// 	{
+//         // Update the points of the line
+//         p0.x = x0; p0.y = y0;
+//         p1.x = x1; p1.y = y1;
+
+// 		// Draw the line
+// 		drawLine(camera, &p0, &p1, this->colorsOfVertices[p0.colorId - 1], this->colorsOfVertices[p1.colorId - 1]); // ????
+//     }
+//     // Else, the line is outside the clipping area and should not be drawn 
+// }
+
+// void Scene::clipTriangle(Camera *camera, Triangle& triangle)
+// {
+// 	// Apply clipping to each edge of the triangle
+// 	clipLine(camera, *vertices[triangle.vertexIds[0] - 1], *vertices[triangle.vertexIds[1] - 1]);
+// 	clipLine(camera, *vertices[triangle.vertexIds[1] - 1], *vertices[triangle.vertexIds[2] - 1]);
+// 	clipLine(camera, *vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1]);
+// }

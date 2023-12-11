@@ -55,7 +55,11 @@ public:
 	uint8_t computeOutcode(Camera *camera, double x, double y);
 	void clipLine(Camera *camera, Vec3 &p0, Vec3 &p1);
 	void clipTriangle(Camera *camera, Triangle& triangle);
+
+	bool liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1);
 	void drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2);
+
+	Color interpolateColor(const Color &c1, const Color &c2, double t);
 
 	bool isTriangleBackFacing(const Triangle& triangle, Camera *camera);
 };
