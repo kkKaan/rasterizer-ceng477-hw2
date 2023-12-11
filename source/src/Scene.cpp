@@ -582,7 +582,7 @@ void Scene::clipLine(Camera *camera, Vec3 &p0, Vec3 &p1)
         p1.x = x1; p1.y = y1;
 
 		// Draw the line
-		drawLine(camera, &p0, &p1, this->colorsOfVertices[p0.colorId - 1], this->colorsOfVertices[p1.colorId - 1]);
+		drawLine(camera, &p0, &p1, this->colorsOfVertices[p0.colorId - 1], this->colorsOfVertices[p1.colorId - 1]); // ????
     }
     // Else, the line is outside the clipping area and should not be drawn 
 }
