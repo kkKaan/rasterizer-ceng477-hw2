@@ -519,7 +519,7 @@ void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 /*
 	Liang-Barsky Algorithm for clipping	
 */
-bool Scene::liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1)
+bool Scene::liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1) /// ??????????????
 {
     double dx = p1.x - p0.x;
     double dy = p1.y - p0.y;
@@ -527,10 +527,10 @@ bool Scene::liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1)
     double t0 = 0.0;
     double t1 = 1.0;
 
-    p[0] = -dx; q[0] = p0.x - camera->left;
-    p[1] = dx;  q[1] = camera->right - p0.x;
-    p[2] = -dy; q[2] = p0.y - camera->bottom;
-    p[3] = dy;  q[3] = camera->top - p0.y;
+	p[0] = -dx; q[0] = p0.x - 0; // Left
+	p[1] = dx;  q[1] = camera->horRes - p0.x; // Right
+	p[2] = -dy; q[2] = p0.y - 0; // Bottom
+	p[3] = dy;  q[3] = camera->verRes - p0.y; // Top
 
     for (int i = 0; i < 4; i++)
     {
@@ -573,6 +573,7 @@ bool Scene::liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1)
 */
 void Scene::drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2)
 {
+	printf("drawLine\n");
     // Convert Vec3 to 2D screen coordinates
     int x1 = static_cast<int>(v1->x);
     int y1 = static_cast<int>(v1->y);

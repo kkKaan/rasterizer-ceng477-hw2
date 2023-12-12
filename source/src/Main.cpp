@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
         // test
         Vec3 v1(1, 0, 0);
 
-        cout << "v1: " << v1 << endl;
+        // cout << "v1: " << v1 << endl;
 
         // Rotation r1(-1, 90, 0, 1, 0); // rotate 90 degrees around y axis
         // Rotation r2(-1, 45, 0, 0, 1); // rotate 45 degrees around z axis
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
         // Scaling s1(-1, 2, 2, -31);
         // v1 = v1.scaleVec3(v1, s1);
 
-        cout << "v1: " << v1 << endl;
+        // cout << "v1: " << v1 << endl;
 
         return 0;
     }
