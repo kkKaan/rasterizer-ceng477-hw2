@@ -521,8 +521,8 @@ void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 */
 bool Scene::liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1) /// ??????????????
 {
-    double dx = p1.x - p0.x;
-    double dy = p1.y - p0.y;
+    double dx = abs(p1.x - p0.x);
+    double dy = abs(p1.y - p0.y);
     double p[4], q[4];
     double t0 = 0.0;
     double t1 = 1.0;
@@ -569,114 +569,93 @@ bool Scene::liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1) /// ????????????
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-/*
-	Draws line between two vertices.
-*/
-void Scene::drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2)
+bool isVisible(double den, double num, double &t_E, double &t_L)
 {
-    int x0 = static_cast<int>(v1->x);
-    int y0 = static_cast<int>(v1->y);
-    int x1 = static_cast<int>(v2->x);
-    int y1 = static_cast<int>(v2->y);
-
-    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1; 
-    int err = dx + dy, e2; // error value e_xy
-
-    while(true) {
-        if (x0 >= 0 && x0 < camera->horRes && y0 >= 0 && y0 < camera->verRes) {
-            // Interpolate the color based on the current position
-            double t = sqrt(pow(x0 - v1->x, 2) + pow(y0 - v1->y, 2)) / sqrt(pow(v2->x - v1->x, 2) + pow(v2->y - v1->y, 2));
-            Color interpolatedColor = interpolateColor(*c1, *c2, t);
-            assignColorToPixel(x0, y0, interpolatedColor);
+    double t = num / den;
+    if (den > 0) {
+        if (t > t_L) {
+            return false;
         }
-        if (x0 == x1 && y0 == y1) break;
-        e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x0 += sx; } // e_xy+e_x > 0
-        if (e2 <= dx) { err += dx; y0 += sy; } // e_xy+e_y < 0
+        if (t > t_E) {
+            t_E = t;
+        }
+    } else if (den < 0) {
+        if (t < t_E) {
+            return false;
+        }
+        if (t < t_L) {
+            t_L = t;
+        }
+    } else if (num > 0) {
+        return false;
     }
+    return true;
 }
 
-bool isVisible(double p, double q, double & tE, double & tL) {
-
-		double t = q / p;
-		if (p > 0) {
-			if (t > tL) {
-				return false;
-			} else if (t > tE) {
-				tE = t;
-			}
-		} else if(p < 0) {
-			if (t < tE) {
-				return false;
-			} else if (t < tL) {
-				tL = t;
-			}
-		}
-		else if (q > 0) {
-			return false;
-		}
+//Liang-Barsky Algorithm is implemented
+bool clipping(Vec4 &vertex1, Vec4 &vertex2, Color *color1, Color *color2)
+{
 	
-	return true;
-}
+    double t_E = 0;
+    double t_L = 1;
 
+    double dx = vertex2.x - vertex1.x;
+    double dy = vertex2.y - vertex1.y;
+    double dz = vertex2.z - vertex1.z;
 
-bool clippedLine(Scene *scene,Vec4 & v1_t, Vec4 & v2_t, Color & c1, Color & c2) {
-    bool result = false;
-    Vec4 v0 = v1_t, v1 = v2_t;
-	int bflag = 0;
-    double tE = 0, tL = 1;
-	double d[]= {v1.x-v0.x,v1.y-v0.y,v1.z-v0.z};
-	double  min[] = {-1,-1,-1};
-	double max[] = {1,1,1};
-	double * v[] = {&v0.x,&v0.y,&v0.z};
-	Color dcolor;
-	dcolor.r = c2.r - c1.r;
-	dcolor.g = c2.g - c1.g;
-	dcolor.b = c2.b - c1.b;
-	Color *c1_t =new Color(c1);
-	Color *c2_t = new Color(c2);
-	int newColorId1 = v0.colorId;
-	int newColorId2 = v1.colorId;
+	printf("dc entered\n");
+    Color dc;
+	printf("dc exited\n");
+    dc.r = color2->r - color1->r;
+    dc.g = color2->g - color1->g;
+    dc.b = color2->b - color1->b;
+	
+
+    double x_min = -1;
+    double x_max = 1;
+    double y_min = -1;
+    double y_max = 1;
+    double z_min = -1;
+    double z_max = 1;
 
 	
-	
-	for (int i = 0; i < 3; i++) {
-		if (isVisible(d[i], min[i]-(*v[i]), tE, tL) && isVisible(-d[i], (*v[i])-max[i], tE, tL)) {
-			bflag ++;
-		}
-	}
-		if(bflag == 3){
-			result = true;
-			/* Line is visible */
-			if (tL < 1.0) {
-				v1.x = v0.x + (d[0] * tL);
-				v1.y = v0.y + (d[1] * tL);
-				v1.z = v0.z + (d[2] * tL);
-				c2_t->r = c1_t->r + (dcolor.r * tL);
-				c2_t->g = c1_t->g + (dcolor.g * tL);
-				c2_t->b = c1_t->b + (dcolor.b * tL);
-				scene->colorsOfVertices.push_back(c2_t);
-				newColorId2= scene->colorsOfVertices.size();
 
-			}
-			if (tE > 0.0) {
-				v0.x = v0.x + (d[0] * tE);
-				v0.y = v0.y + (d[1] * tE);
-				v0.z = v0.z + (d[2] * tE);
-				c1_t->r = c1_t->r + (dcolor.r * tE);
-				c1_t->g = c1_t->g + (dcolor.g * tE);
-				c1_t->b = c1_t->b + (dcolor.b * tE);
-				scene->colorsOfVertices.push_back(c1_t);
-				newColorId1= scene->colorsOfVertices.size();
-			}
-		}
+    bool lineVisible = false;
+    if (isVisible(dx, x_min - vertex1.x, t_E, t_L)) {//left
+        if (isVisible(-dx, vertex1.x - x_max, t_E, t_L)) {//right
+            if (isVisible(dy, y_min - vertex1.y, t_E, t_L)) {//bottom
+                if (isVisible(-dy, vertex1.y - y_max, t_E, t_L)) {//top
+                    if (isVisible(dz, z_min - vertex1.z, t_E, t_L)) {//front
+                        if (isVisible(-dz, vertex1.z - z_max, t_E, t_L)) {//back
+                            lineVisible = true;
+                            if (t_L < 1) 
+							{
+								printf("t_L < 1\n");
+                                vertex2.x = vertex1.x + t_L * dx;
+                                vertex2.y = vertex1.y + t_L * dy;
+                                vertex2.z = vertex1.z + t_L * dz;
+                                color2->r = color1->r + t_L * dc.r;
+                                color2->g = color1->g + t_L * dc.g;
+                                color2->b = color1->b + t_L * dc.b;
+                            }
+                            if (t_E > 0)
+							{
+								printf("t_E > 0\n");
+                                vertex1.x = vertex1.x + t_E * dx;
+                                vertex1.y = vertex1.y + t_E * dy;
+                                vertex1.z = vertex1.z + t_E * dz;
+                                color1->r = color1->r + t_E * dc.r;
+                                color1->g = color1->g + t_E * dc.g;
+                                color1->b = color1->b + t_E * dc.b;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-	v1_t = v0;
-	v1_t.colorId = newColorId1;
-	v2_t = v1;
-	v2_t.colorId = newColorId2;
-	return result;
+    return lineVisible;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -765,17 +744,17 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				printf("--------------------\n");
 
 				printf("clipping\n");
-				if (clippedLine(this, v0Homogeneous, v1Homogeneous, *this->colorsOfVertices[v0.colorId - 1], *this->colorsOfVertices[v1.colorId - 1]))
+				if (clipping(v0Homogeneous, v1Homogeneous, this->colorsOfVertices[v0.colorId - 1], this->colorsOfVertices[v1.colorId - 1]))
 				{
 					printf ("lineRasterizer v0-v1 \n");
 					// drawLine(camera, &v0, &v1, this->colorsOfVertices[v0.colorId - 1], this->colorsOfVertices[v1.colorId - 1]);
 				}
-				if (clippedLine(this, v1tempHomogeneous, v2Homogeneous, *this->colorsOfVertices[v1.colorId - 1], *this->colorsOfVertices[v2.colorId - 1]))
+				if (clipping(v1tempHomogeneous, v2Homogeneous, this->colorsOfVertices[v1.colorId - 1], this->colorsOfVertices[v2.colorId - 1]))
 				{
 					printf ("lineRasterizer v1-v2 \n");
 					// drawLine(camera, &v1temp, &v2, this->colorsOfVertices[v1.colorId - 1], this->colorsOfVertices[v2.colorId - 1]);
 				}
-				if (clippedLine(this, v2tempHomogeneous, v0tempHomogeneous, *this->colorsOfVertices[v2.colorId - 1], *this->colorsOfVertices[v0.colorId - 1]))
+				if (clipping(v2tempHomogeneous, v0tempHomogeneous, this->colorsOfVertices[v2.colorId - 1], this->colorsOfVertices[v0.colorId - 1]))
 				{
 					printf ("lineRasterizer v2-v0 \n");
 					// drawLine(camera, &v2temp, &v0temp, this->colorsOfVertices[v2.colorId - 1], this->colorsOfVertices[v0.colorId - 1]);

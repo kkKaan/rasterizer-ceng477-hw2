@@ -59,7 +59,7 @@ public:
 	bool liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1);
 	void drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2);
 
-	bool clipping(Camera& camera, Vec4 &vec0, Vec4 &vec1);
+	// bool clipping(Camera& camera, Vec4 &vec0, Vec4 &vec1);
 	void midpoint1(Vec4 &vec1, Vec4 &vec2);
 	void midpoint2(Vec4 &vec1, Vec4 &vec2);
 	void lineRasterizer(Vec4 &vec1, Vec4 &vec2);
