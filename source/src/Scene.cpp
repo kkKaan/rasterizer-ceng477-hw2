@@ -652,6 +652,8 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 {
     for (Mesh *mesh : this->meshes)
     {
+		printf ("triangle count: %d\n", mesh->triangles.size());
+
 		for (Triangle& triangle : mesh->triangles)
         {
             // Apply transformations
@@ -661,9 +663,14 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 
             if (mesh->type == 0) // wireframe
             {
+				printf ("wireframe\n");
                 Vec3 &v0 = *vertices[triangle.vertexIds[0] - 1]; Vec3 &v0temp = v0;
                 Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1]; Vec3 &v1temp = v1;
                 Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1]; Vec3 &v2temp = v2;
+
+				Vec4 v0Homogeneous(v0.x, v0.y, v0.z, 1);
+				Vec4 v1Homogeneous(v1.x, v1.y, v1.z, 1);
+				Vec4 v2Homogeneous(v2.x, v2.y, v2.z, 1);
 
                 // Clip each edge of the triangle
                 if (liangBarskyClip(camera, v0, v1)) // ???
@@ -672,6 +679,14 @@ void Scene::forwardRenderingPipeline(Camera *camera)
                     drawLine(camera, &v1temp, &v2, colorsOfVertices[v1.colorId - 1], colorsOfVertices[v2.colorId - 1]);
                 if (liangBarskyClip(camera, v2temp, v0temp))
 					drawLine(camera, &v2temp, &v0temp, colorsOfVertices[v2.colorId - 1], colorsOfVertices[v0.colorId - 1]);
+
+				// // Clip each edge of the triangle
+				// if (1)
+				// 	drawLine(camera, &v0, &v1, colorsOfVertices[v0.colorId - 1], colorsOfVertices[v1.colorId - 1]);
+				// if (1)
+				// 	drawLine(camera, &v1, &v2, colorsOfVertices[v1.colorId - 1], colorsOfVertices[v2.colorId - 1]);
+				// if (1)
+				// 	drawLine(camera, &v2, &v0, colorsOfVertices[v2.colorId - 1], colorsOfVertices[v0.colorId - 1]);
             }
             else // solid
             {
