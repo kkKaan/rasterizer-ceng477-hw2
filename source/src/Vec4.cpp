@@ -73,6 +73,21 @@ Vec4 Vec4::scaleVec4(Vec4 v, Scaling s)
     return Vec4(v.x * s.sx, v.y * s.sy, v.z * s.sz, v.t);
 }
 
+Vec4 Vec4::operator-(const Vec4 &v)
+{
+    return Vec4(this->x - v.x, this->y - v.y, this->z - v.z, this->t - v.t);
+}
+
+Vec4 Vec4::operator+(const Vec4 &v)
+{
+    return Vec4(this->x + v.x, this->y + v.y, this->z + v.z, this->t + v.t);
+}
+
+Vec4 Vec4::multiplyWithScalar(double scalar)
+{
+    return Vec4(this->x * scalar, this->y * scalar, this->z * scalar, this->t * scalar);
+}
+
 // Vec4 Vec4::multiplyMatrixVec4(Matrix4 m, Vec4 v)
 // {
 //     Vec4 result;

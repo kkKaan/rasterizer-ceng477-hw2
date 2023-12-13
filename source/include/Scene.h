@@ -59,6 +59,8 @@ public:
 	bool liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1);
 	void drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2);
 
+	bool clipping(Camera& camera, Vec4 &vec0, Vec4 &vec1);
+
 	Color interpolateColor(const Color &c1, const Color &c2, double t);
 
 	bool isTriangleBackFacing(const Triangle& triangle, Camera *camera);

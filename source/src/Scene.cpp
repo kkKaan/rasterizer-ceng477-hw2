@@ -775,3 +775,77 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 // 	clipLine(camera, *vertices[triangle.vertexIds[1] - 1], *vertices[triangle.vertexIds[2] - 1]);
 // 	clipLine(camera, *vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1]);
 // }
+
+bool isVisible(double den, double num, double &t_e, double &t_l)
+{
+    if (den > 0)
+	{
+        double t = num / den;
+
+        if (t > t_l) 
+			return false;
+        else if (t > t_e) 
+			t_e = t;
+    } 
+	else if (den < 0)
+	{
+        double t = num / den;
+
+        if (t < t_e) 
+			return false;
+        else if (t < t_l) 
+			t_l = t;
+    } 
+	else if(num > 0)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+//Liang-Barsky Algorithm
+bool Scene::clipping(Camera& camera, Vec4 &vec0, Vec4 &vec1)
+{
+
+	int nx = camera.horRes;
+	int ny = camera.verRes;
+
+	Color color_vec0 = *colorsOfVertices[vec0.colorId - 1];
+	Color color_vec1 = *colorsOfVertices[vec1.colorId - 1];
+
+
+	Vec4 d = vec1 - vec0;
+	Color color_diff = (color_vec1 - color_vec0) / d.x;
+
+	Vec3 minVec(-0.5, -0.5, 0, -1.);
+	Vec3 maxVec(nx-0.5, ny-0.5, 1., -1.);
+
+	double t_e = 0, t_l = 1;
+
+	bool visible = false;
+
+	if (isVisible(d.x, minVec.x - vec0.x, t_e, t_l))  //left
+    if (isVisible(-d.x, vec0.x - maxVec.x, t_e, t_l)) //right
+    if (isVisible(d.y, minVec.y - vec0.y, t_e, t_l)) //bottom
+    if (isVisible(-d.y, vec0.y - maxVec.y, t_e, t_l)) //top
+    if (isVisible(d.z, minVec.z - vec0.z, t_e, t_l)) //front
+    if (isVisible(-d.z, vec0.z - maxVec.z, t_e, t_l)) //back
+	{	
+		visible = true;
+		if(t_l < 1)
+		{
+			// vec1 = addVec4(vec0, multiplyVec4WithScalar(d, t_l));
+			vec1 = vec0 + d.multiplyWithScalar(t_l);
+			color_vec1 = color_vec0 + color_diff * t_l;
+		}							
+		if(t_e > 0)
+		{
+			// vec0 = addVec4(vec0, multiplyVec4WithScalar(d, t_e) );
+			vec0 = vec0 + d.multiplyWithScalar(t_e);
+			color_vec0 = color_vec1 + color_diff * t_e;
+		}
+	}
+
+	return visible;
+}
