@@ -568,137 +568,58 @@ bool Scene::liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1) /// ????????????
     return true; // Line is inside or intersects the clipping area
 }
 
-int colorClamp(double &color){
-	if(color > 255)
-		return 255;
-	if(color < 0)
-		return 0;
-	return round(color + 0.5);
-}
-
-Color colorClamp(Color &color){
-	return Color(colorClamp(color.r), 
-					colorClamp(color.g), 
-					colorClamp(color.b));
-}
-
-void Scene::midpoint1(Vec4 &vec1, Vec4 &vec2 ){
-	Color c, c1, c2, dc;
-	c1 = *colorsOfVertices[vec1.colorId-1];
-	c2 = *colorsOfVertices[vec2.colorId-1];
-	c = c1;
-	double d;
-	int y = vec1.y;
-
-	if(vec2.y<vec1.y){       
-        d = (vec1.y - vec2.y) + ( -0.5 * (vec2.x - vec1.x));
-        dc = (c2 - c1) / (vec2.x - vec1.x);
-        for (int x = vec1.x; x <= vec2.x; x++) {
-            image[x][y] = colorClamp(c);
-           // choose NE
-		   if (d > 0){ 
-                y--;
-                d += (vec1.y - vec2.y) - (vec2.x - vec1.x);
-            }
-			// choose E
-            else{
-                d += (vec1.y - vec2.y);
-			} 
-            c = c + dc;
-        }
-	}
-	else{
-        d = (vec1.y - vec2.y) + ( 0.5 * (vec2.x - vec1.x));
-        dc = (c2 - c1) / (vec2.x - vec1.x);
-        for (int x = vec1.x; x <= vec2.x; x++) {
-            image[x][y] = colorClamp(c);
-            // choose NE
-			if (d < 0){ 
-                y ++;
-                d += (vec1.y - vec2.y) + (vec2.x - vec1.x);
-            }
-			// choose E
-            else{
- 				d += (vec1.y - vec2.y);
-			}      
-            c = c + dc;
-        }
-	}
-
-}
-void Scene::midpoint2(Vec4 &vec1, Vec4 &vec2){
-		Color c, c1, c2, dc;
-		c1 = *colorsOfVertices[vec1.colorId-1];
-		c2 = *colorsOfVertices[vec2.colorId-1];
-		c = c1;
-		double d;
-        int x = vec1.x;
-
-		if (vec2.x < vec1.x) {
-			d = (vec2.x - vec1.x) + (-0.5 * (vec1.y - vec2.y));
-			dc = (c2 - c1) / (vec2.y - vec1.y);
-			for (int y = vec1.y; y <= vec2.y; y++) {
-				image[x][y] = colorClamp(c);
-				if (d < 0){
-					x --;
-					d += (vec2.x - vec1.x) - (vec1.y - vec2.y);
-				}
-				else{
-					d += (vec2.x - vec1.x);
-				}	
-				c = c + dc;
-			}
-        }
-		else{
-			d = (vec2.x - vec1.x) + (0.5 * (vec1.y - vec2.y));
-			dc = (c2 - c1) / (vec2.y - vec1.y);
-			for (int y = vec1.y; y <= vec2.y; y++) {
-				image[x][y] = colorClamp(c);
-				if (d > 0){
-					x ++;
-					d += (vec2.x - vec1.x) + (vec1.y - vec2.y);
-				}
-				else{
-					d += (vec2.x - vec1.x);
-				}
-				c = c + dc;
-			}
-		}
-
-}
-
+/////////////////////////////////////////////////////////////////////////////////
 /*
 	Draws line between two vertices.
 */
-void Scene::lineRasterizer(Vec4 &vec1, Vec4 &vec2)
+void Scene::drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2)
 {
-    double dx = vec2.x - vec1.x;
-    double dy = vec2.y - vec1.y;
+    int x1 = static_cast<int>(v1->x);
+    int y1 = static_cast<int>(v1->y);
+    int x2 = static_cast<int>(v2->x);
+    int y2 = static_cast<int>(v2->y);
 
-	// -1 < slope < 1 
-    if (abs(dy) <= abs(dx)) {
+    int dx = x2 - x1;
+    int dy = y2 - y1;
+    int abs_dx = abs(dx);
+    int abs_dy = abs(dy);
+    int sx = (x1 < x2) ? 1 : -1;
+    int sy = (y1 < y2) ? 1 : -1;
+    bool isSteep = abs_dy > abs_dx;
 
-		// -1 < slope < 0 
-        if (vec2.x < vec1.x) {
-			midpoint1(vec2, vec1);
-        }
-		// 0 < slope < 1 
-		else{
-			midpoint1(vec1,vec2);
-		}
+    if (isSteep)
+    {
+        std::swap(x1, y1);
+        std::swap(x2, y2);
+        std::swap(abs_dx, abs_dy);
     }
-	// (-inf < slope < -1)  U  (1 < slope < +inf)
-    else if (abs(dy) > abs(dx)) {
-		// -inf < slope < -1 
-        if (vec2.y < vec1.y) {
-            midpoint2(vec2, vec1);
+
+    int err = abs_dx / 2;
+    
+    for (int x = x1, y = y1; sx < 0 ? x >= x2 : x <= x2; x += sx)
+    {
+        if (isSteep)
+        {
+            if (y >= 0 && y < camera->horRes && x >= 0 && x < camera->verRes)
+                assignColorToPixel(y, x, *c1); // Swap x and y if steep
         }
-		// 1 < slope < +inf
-		else{
-			midpoint2(vec1, vec2);
-		}
+        else
+        {
+            if (x >= 0 && x < camera->horRes && y >= 0 && y < camera->verRes)
+                assignColorToPixel(x, y, *c1);
+        }
+
+        err -= abs_dy;
+        if (err < 0)
+        {
+            y += sy;
+            err += abs_dx;
+        }
     }
 }
+
+
+/////////////////////////////////////////////////////////////////////////////////
 
 Color Scene::interpolateColor(const Color &c1, const Color &c2, double t)
 {
@@ -739,10 +660,10 @@ bool Scene::isTriangleBackFacing(const Triangle& triangle, Camera *camera)
 */
 void Scene::forwardRenderingPipeline(Camera *camera)
 {
-	printf ("mesh count: %d\n", this->meshes.size());
+	// printf ("mesh count: %d\n", this->meshes.size());
     for (Mesh *mesh : this->meshes)
     {
-		printf ("triangle count: %d\n", mesh->triangles.size());
+		// printf ("triangle count: %d\n", mesh->triangles.size());
 
 		for (int i = 0; i < mesh->triangles.size(); ++i)
         {
@@ -766,24 +687,19 @@ void Scene::forwardRenderingPipeline(Camera *camera)
                 // Clip each edge of the triangle
                 if (liangBarskyClip(camera, v0, v1))
 				{
-					lineRasterizer(v0Homogeneous, v1Homogeneous);
+					printf ("lineRasterizer v0-v1 \n");
+					drawLine(camera, &v0, &v1, this->colorsOfVertices[v0.colorId - 1], this->colorsOfVertices[v1.colorId - 1]);
 				}
 				if (liangBarskyClip(camera, v1temp, v2))
 				{
-					lineRasterizer(v1tempHomogeneous, v2Homogeneous);
+					printf ("lineRasterizer v1-v2 \n");
+					drawLine(camera, &v1temp, &v2, this->colorsOfVertices[v1.colorId - 1], this->colorsOfVertices[v2.colorId - 1]);
 				}
 				if (liangBarskyClip(camera, v2temp, v0temp))
 				{
-					lineRasterizer(v2tempHomogeneous, v0tempHomogeneous);
+					printf ("lineRasterizer v2-v0 \n");
+					drawLine(camera, &v2temp, &v0temp, this->colorsOfVertices[v2.colorId - 1], this->colorsOfVertices[v0.colorId - 1]);
 				}
-
-				// // Clip each edge of the triangle
-				// if (1)
-				// 	drawLine(camera, &v0, &v1, colorsOfVertices[v0.colorId - 1], colorsOfVertices[v1.colorId - 1]);
-				// if (1)
-				// 	drawLine(camera, &v1, &v2, colorsOfVertices[v1.colorId - 1], colorsOfVertices[v2.colorId - 1]);
-				// if (1)
-				// 	drawLine(camera, &v2, &v0, colorsOfVertices[v2.colorId - 1], colorsOfVertices[v0.colorId - 1]);
             }
             else // solid
             {
@@ -888,76 +804,76 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 // 	clipLine(camera, *vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1]);
 // }
 
-bool isVisible(double den, double num, double &t_e, double &t_l)
-{
-    if (den > 0)
-	{
-        double t = num / den;
+// bool isVisible(double den, double num, double &t_e, double &t_l)
+// {
+//     if (den > 0)
+// 	{
+//         double t = num / den;
 
-        if (t > t_l) 
-			return false;
-        else if (t > t_e) 
-			t_e = t;
-    } 
-	else if (den < 0)
-	{
-        double t = num / den;
+//         if (t > t_l) 
+// 			return false;
+//         else if (t > t_e) 
+// 			t_e = t;
+//     } 
+// 	else if (den < 0)
+// 	{
+//         double t = num / den;
 
-        if (t < t_e) 
-			return false;
-        else if (t < t_l) 
-			t_l = t;
-    } 
-	else if(num > 0)
-	{
-		return false;
-	}
+//         if (t < t_e) 
+// 			return false;
+//         else if (t < t_l) 
+// 			t_l = t;
+//     } 
+// 	else if(num > 0)
+// 	{
+// 		return false;
+// 	}
 
-	return true;
-}
+// 	return true;
+// }
 
-//Liang-Barsky Algorithm
-bool Scene::clipping(Camera& camera, Vec4 &vec0, Vec4 &vec1)
-{
+// //Liang-Barsky Algorithm
+// bool Scene::clipping(Camera& camera, Vec4 &vec0, Vec4 &vec1)
+// {
 
-	int nx = camera.horRes;
-	int ny = camera.verRes;
+// 	int nx = camera.horRes;
+// 	int ny = camera.verRes;
 
-	Color color_vec0 = *colorsOfVertices[vec0.colorId - 1];
-	Color color_vec1 = *colorsOfVertices[vec1.colorId - 1];
+// 	Color color_vec0 = *colorsOfVertices[vec0.colorId - 1];
+// 	Color color_vec1 = *colorsOfVertices[vec1.colorId - 1];
 
 
-	Vec4 d = vec1 - vec0;
-	Color color_diff = (color_vec1 - color_vec0) / d.x;
+// 	Vec4 d = vec1 - vec0;
+// 	Color color_diff = (color_vec1 - color_vec0) / d.x;
 
-	Vec3 minVec(-0.5, -0.5, 0, -1.);
-	Vec3 maxVec(nx-0.5, ny-0.5, 1., -1.);
+// 	Vec3 minVec(-0.5, -0.5, 0, -1.);
+// 	Vec3 maxVec(nx-0.5, ny-0.5, 1., -1.);
 
-	double t_e = 0, t_l = 1;
+// 	double t_e = 0, t_l = 1;
 
-	bool visible = false;
+// 	bool visible = false;
 
-	if (isVisible(d.x, minVec.x - vec0.x, t_e, t_l))  //left
-    if (isVisible(-d.x, vec0.x - maxVec.x, t_e, t_l)) //right
-    if (isVisible(d.y, minVec.y - vec0.y, t_e, t_l)) //bottom
-    if (isVisible(-d.y, vec0.y - maxVec.y, t_e, t_l)) //top
-    if (isVisible(d.z, minVec.z - vec0.z, t_e, t_l)) //front
-    if (isVisible(-d.z, vec0.z - maxVec.z, t_e, t_l)) //back
-	{	
-		visible = true;
-		if(t_l < 1)
-		{
-			// vec1 = addVec4(vec0, multiplyVec4WithScalar(d, t_l));
-			vec1 = vec0 + d.multiplyWithScalar(t_l);
-			color_vec1 = color_vec0 + color_diff * t_l;
-		}							
-		if(t_e > 0)
-		{
-			// vec0 = addVec4(vec0, multiplyVec4WithScalar(d, t_e) );
-			vec0 = vec0 + d.multiplyWithScalar(t_e);
-			color_vec0 = color_vec1 + color_diff * t_e;
-		}
-	}
+// 	if (isVisible(d.x, minVec.x - vec0.x, t_e, t_l))  //left
+//     if (isVisible(-d.x, vec0.x - maxVec.x, t_e, t_l)) //right
+//     if (isVisible(d.y, minVec.y - vec0.y, t_e, t_l)) //bottom
+//     if (isVisible(-d.y, vec0.y - maxVec.y, t_e, t_l)) //top
+//     if (isVisible(d.z, minVec.z - vec0.z, t_e, t_l)) //front
+//     if (isVisible(-d.z, vec0.z - maxVec.z, t_e, t_l)) //back
+// 	{	
+// 		visible = true;
+// 		if(t_l < 1)
+// 		{
+// 			// vec1 = addVec4(vec0, multiplyVec4WithScalar(d, t_l));
+// 			vec1 = vec0 + d.multiplyWithScalar(t_l);
+// 			color_vec1 = color_vec0 + color_diff * t_l;
+// 		}							
+// 		if(t_e > 0)
+// 		{
+// 			// vec0 = addVec4(vec0, multiplyVec4WithScalar(d, t_e) );
+// 			vec0 = vec0 + d.multiplyWithScalar(t_e);
+// 			color_vec0 = color_vec1 + color_diff * t_e;
+// 		}
+// 	}
 
-	return visible;
-}
+// 	return visible;
+// }
