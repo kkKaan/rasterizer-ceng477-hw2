@@ -441,9 +441,9 @@ void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
 	Vec3 *vertex3 = this->vertices[triangle.vertexIds[2] - 1];
 
 	// Convert to homogeneous coordinates
-	Vec4 vertex1Homogeneous(vertex1->x, vertex1->y, vertex1->z, 1); 
-	Vec4 vertex2Homogeneous(vertex2->x, vertex2->y, vertex2->z, 1); 
-	Vec4 vertex3Homogeneous(vertex3->x, vertex3->y, vertex3->z, 1); 
+	Vec4 vertex1Homogeneous(vertex1->x, vertex1->y, vertex1->z, 1, vertex1->colorId); 
+	Vec4 vertex2Homogeneous(vertex2->x, vertex2->y, vertex2->z, 1, vertex2->colorId); 
+	Vec4 vertex3Homogeneous(vertex3->x, vertex3->y, vertex3->z, 1, vertex3->colorId); 
 
 	// Apply view transformation
 	Vec4 transformedVertex1 = multiplyMatrixWithVec4(viewMatrix, vertex1Homogeneous);
@@ -478,9 +478,9 @@ void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
 	}
 
 	// Convert back to 3D coordinates
-	*vertex1 = Vec3(projectedVertex1.x, projectedVertex1.y, projectedVertex1.z);
-	*vertex2 = Vec3(projectedVertex2.x, projectedVertex2.y, projectedVertex2.z);
-	*vertex3 = Vec3(projectedVertex3.x, projectedVertex3.y, projectedVertex3.z);
+	*vertex1 = Vec3(projectedVertex1.x, projectedVertex1.y, projectedVertex1.z, projectedVertex1.colorId);
+	*vertex2 = Vec3(projectedVertex2.x, projectedVertex2.y, projectedVertex2.z, projectedVertex2.colorId);
+	*vertex3 = Vec3(projectedVertex3.x, projectedVertex3.y, projectedVertex3.z, projectedVertex3.colorId);
 }
 
 /*
@@ -501,9 +501,9 @@ void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 	Vec3 *vertex3 = this->vertices[triangle.vertexIds[2] - 1];
 
 	// Convert to homogeneous coordinates
-	Vec4 vertex1Homogeneous(vertex1->x, vertex1->y, vertex1->z, 1);
-	Vec4 vertex2Homogeneous(vertex2->x, vertex2->y, vertex2->z, 1);
-	Vec4 vertex3Homogeneous(vertex3->x, vertex3->y, vertex3->z, 1);
+	Vec4 vertex1Homogeneous(vertex1->x, vertex1->y, vertex1->z, 1, vertex1->colorId);
+	Vec4 vertex2Homogeneous(vertex2->x, vertex2->y, vertex2->z, 1, vertex2->colorId);
+	Vec4 vertex3Homogeneous(vertex3->x, vertex3->y, vertex3->z, 1, vertex3->colorId);
 
 	// Apply viewport transformation
 	Vec4 transformedVertex1 = multiplyMatrixWithVec4(viewportMatrix, vertex1Homogeneous);
@@ -511,9 +511,9 @@ void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 	Vec4 transformedVertex3 = multiplyMatrixWithVec4(viewportMatrix, vertex3Homogeneous);
 
 	// Convert back to 3D coordinates
-	*vertex1 = Vec3(transformedVertex1.x, transformedVertex1.y, transformedVertex1.z);
-	*vertex2 = Vec3(transformedVertex2.x, transformedVertex2.y, transformedVertex2.z);
-	*vertex3 = Vec3(transformedVertex3.x, transformedVertex3.y, transformedVertex3.z);
+	*vertex1 = Vec3(transformedVertex1.x, transformedVertex1.y, transformedVertex1.z, transformedVertex1.colorId);
+	*vertex2 = Vec3(transformedVertex2.x, transformedVertex2.y, transformedVertex2.z, transformedVertex2.colorId);
+	*vertex3 = Vec3(transformedVertex3.x, transformedVertex3.y, transformedVertex3.z, transformedVertex3.colorId);
 }
 
 /*
@@ -630,16 +630,11 @@ bool clippedLine(Scene *scene,Vec4 & v1_t, Vec4 & v2_t, Color & c1, Color & c2) 
 	double  min[] = {-1,-1,-1};
 	double max[] = {1,1,1};
 	double * v[] = {&v0.x,&v0.y,&v0.z};
-	Color dcolor;
-	dcolor.r = c2.r - c1.r;
-	dcolor.g = c2.g - c1.g;
-	dcolor.b = c2.b - c1.b;
-	Color *c1_t =new Color(c1);
-	Color *c2_t = new Color(c2);
+	Color dcolor(c2 - c1);
+	Color c1_t(c1);
+	Color c2_t(c2);
 	int newColorId1 = v0.colorId;
 	int newColorId2 = v1.colorId;
-
-	
 	
 	for (int i = 0; i < 3; i++) {
 		if (isVisible(d[i], min[i]-(*v[i]), tE, tL) && isVisible(-d[i], (*v[i])-max[i], tE, tL)) {
@@ -653,22 +648,16 @@ bool clippedLine(Scene *scene,Vec4 & v1_t, Vec4 & v2_t, Color & c1, Color & c2) 
 				v1.x = v0.x + (d[0] * tL);
 				v1.y = v0.y + (d[1] * tL);
 				v1.z = v0.z + (d[2] * tL);
-				c2_t->r = c1_t->r + (dcolor.r * tL);
-				c2_t->g = c1_t->g + (dcolor.g * tL);
-				c2_t->b = c1_t->b + (dcolor.b * tL);
-				scene->colorsOfVertices.push_back(c2_t);
-				newColorId2= scene->colorsOfVertices.size();
+				dcolor = dcolor * tL;
+				c2_t = c1_t + dcolor;
 
 			}
 			if (tE > 0.0) {
 				v0.x = v0.x + (d[0] * tE);
 				v0.y = v0.y + (d[1] * tE);
 				v0.z = v0.z + (d[2] * tE);
-				c1_t->r = c1_t->r + (dcolor.r * tE);
-				c1_t->g = c1_t->g + (dcolor.g * tE);
-				c1_t->b = c1_t->b + (dcolor.b * tE);
-				scene->colorsOfVertices.push_back(c1_t);
-				newColorId1= scene->colorsOfVertices.size();
+				dcolor = dcolor * tE;
+				c1_t = c1 + dcolor;
 			}
 		}
 
@@ -765,21 +754,23 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				printf("--------------------\n");
 
 				printf("clipping\n");
-				if (clippedLine(this, v0Homogeneous, v1Homogeneous, *this->colorsOfVertices[v0.colorId - 1], *this->colorsOfVertices[v1.colorId - 1]))
+				if (clippedLine(this, v0Homogeneous, v1Homogeneous, *(this->colorsOfVertices[v0.colorId - 1]), *(this->colorsOfVertices[v1.colorId - 1])))
 				{
 					printf ("lineRasterizer v0-v1 \n");
 					// drawLine(camera, &v0, &v1, this->colorsOfVertices[v0.colorId - 1], this->colorsOfVertices[v1.colorId - 1]);
 				}
-				if (clippedLine(this, v1tempHomogeneous, v2Homogeneous, *this->colorsOfVertices[v1.colorId - 1], *this->colorsOfVertices[v2.colorId - 1]))
+				if (clippedLine(this, v1tempHomogeneous, v2Homogeneous, *(this->colorsOfVertices[v1.colorId - 1]), *(this->colorsOfVertices[v2.colorId - 1])))
 				{
 					printf ("lineRasterizer v1-v2 \n");
 					// drawLine(camera, &v1temp, &v2, this->colorsOfVertices[v1.colorId - 1], this->colorsOfVertices[v2.colorId - 1]);
 				}
-				if (clippedLine(this, v2tempHomogeneous, v0tempHomogeneous, *this->colorsOfVertices[v2.colorId - 1], *this->colorsOfVertices[v0.colorId - 1]))
+				if (clippedLine(this, v2tempHomogeneous, v0tempHomogeneous, *(this->colorsOfVertices[v2.colorId - 1]), *(this->colorsOfVertices[v0.colorId - 1])))
 				{
 					printf ("lineRasterizer v2-v0 \n");
 					// drawLine(camera, &v2temp, &v0temp, this->colorsOfVertices[v2.colorId - 1], this->colorsOfVertices[v0.colorId - 1]);
 				}
+
+				printf("--------------------\n");
 
             }
             else // solid
@@ -885,3 +876,59 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 // 	clipLine(camera, *vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1]);
 // }
 
+bool clipping(Scene& scene, Vec4 &vertex1, Vec4 &vertex2) { //Liang-Barsky Algorithm is implemented
+    Color *color1 = scene.colorsOfVertices[vertex1.colorId - 1];
+    Color *color2 = scene.colorsOfVertices[vertex2.colorId - 1];
+
+    double t_E = 0;
+    double t_L = 1;
+
+    double dx = vertex2.x - vertex1.x;
+    double dy = vertex2.y - vertex1.y;
+    double dz = vertex2.z - vertex1.z;
+
+    Color dc;
+    dc.r = color2->r - color1->r;
+    dc.g = color2->g - color1->g;
+    dc.b = color2->b - color1->b;
+
+    double x_min = -1;
+    double x_max = 1;
+    double y_min = -1;
+    double y_max = 1;
+    double z_min = -1;
+    double z_max = 1;
+
+    bool lineVisible = true;
+    if (isVisible(dx, x_min - vertex1.x, t_E, t_L)) {//left
+        if (isVisible(-dx, vertex1.x - x_max, t_E, t_L)) {//right
+            if (isVisible(dy, y_min - vertex1.y, t_E, t_L)) {//bottom
+                if (isVisible(-dy, vertex1.y - y_max, t_E, t_L)) {//top
+                    if (isVisible(dz, z_min - vertex1.z, t_E, t_L)) {//front
+                        if (isVisible(-dz, vertex1.z - z_max, t_E, t_L)) {//back
+                            lineVisible = true;
+                            if (t_L < 1) {
+                                vertex2.x = vertex1.x + t_L * dx;
+                                vertex2.y = vertex1.y + t_L * dy;
+                                vertex2.z = vertex1.z + t_L * dz;
+                                color2->r = color1->r + t_L * dc.r;
+                                color2->g = color1->g + t_L * dc.g;
+                                color2->b = color1->b + t_L * dc.b;
+                            }
+                            if (t_E > 0) {
+                                vertex1.x = vertex1.x + t_E * dx;
+                                vertex1.y = vertex1.y + t_E * dy;
+                                vertex1.z = vertex1.z + t_E * dz;
+                                color1->r = color1->r + t_E * dc.r;
+                                color1->g = color1->g + t_E * dc.g;
+                                color1->b = color1->b + t_E * dc.b;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return lineVisible;
+}

@@ -65,12 +65,12 @@ std::ostream &operator<<(std::ostream &os, const Vec4 &v)
 
 Vec4 Vec4::translateVec4(Vec4 v, Translation t)
 {
-    return Vec4(v.x + t.tx, v.y + t.ty, v.z + t.tz, v.t);
+    return Vec4(v.x + t.tx, v.y + t.ty, v.z + t.tz, v.t, v.colorId);
 }
 
 Vec4 Vec4::scaleVec4(Vec4 v, Scaling s)
 {
-    return Vec4(v.x * s.sx, v.y * s.sy, v.z * s.sz, v.t);
+    return Vec4(v.x * s.sx, v.y * s.sy, v.z * s.sz, v.t, v.colorId);
 }
 
 Vec4 Vec4::operator-(const Vec4 &v)
@@ -85,7 +85,7 @@ Vec4 Vec4::operator+(const Vec4 &v)
 
 Vec4 Vec4::multiplyWithScalar(double scalar)
 {
-    return Vec4(this->x * scalar, this->y * scalar, this->z * scalar, this->t * scalar);
+    return Vec4(this->x * scalar, this->y * scalar, this->z * scalar, this->t * scalar, this->colorId);
 }
 
 // Vec4 Vec4::multiplyMatrixVec4(Matrix4 m, Vec4 v)

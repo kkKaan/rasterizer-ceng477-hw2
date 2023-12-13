@@ -31,17 +31,17 @@ std::ostream &operator<<(std::ostream &os, const Color &c)
 
 Color Color::operator+(const Color &c)
 {
-    return Color(std::max(this->r + c.r, 255.0), std::max(this->g + c.g, 255.0), std::max(this->b + c.b, 255.0));
+    return Color(std::min(this->r + c.r, 255.0), std::min(this->g + c.g, 255.0), std::min(this->b + c.b, 255.0));
 }
 
 Color Color::operator*(const double &c)
 {
-    return Color(std::max(this->r * c, 255.0), std::max(this->g * c, 255.0), std::max(this->b * c, 255.0));
+    return Color(std::min(this->r * c, 255.0), std::min(this->g * c, 255.0), std::min(this->b * c, 255.0));
 }
 
 Color Color::operator-(const Color &c)
 {
-    return Color(std::min(this->r - c.r, 0.0), std::min(this->g - c.g, 0.0), std::min(this->b - c.b, 0.0));
+    return Color(std::max(this->r - c.r, 0.0), std::max(this->g - c.g, 0.0), std::max(this->b - c.b, 0.0));
 }
 
 Color Color::operator/(const double &d)
