@@ -63,14 +63,14 @@ std::ostream &operator<<(std::ostream &os, const Vec4 &v)
     return os;
 }
 
-Vec4 Vec4::translateVec4(Vec4 v, Translation t)
+Vec4 Vec4::translateVec4(Translation t)
 {
-    return Vec4(v.x + t.tx, v.y + t.ty, v.z + t.tz, v.t, v.colorId);
+    return Vec4(this->x + t.tx, this->y + t.ty, this->z + t.tz, this->t, this->colorId);
 }
 
-Vec4 Vec4::scaleVec4(Vec4 v, Scaling s)
+Vec4 Vec4::scaleVec4(Scaling s)
 {
-    return Vec4(v.x * s.sx, v.y * s.sy, v.z * s.sz, v.t, v.colorId);
+    return Vec4(this->x * s.sx, this->y * s.sy, this->z * s.sz, this->t, this->colorId);
 }
 
 Vec4 Vec4::operator-(const Vec4 &v)
@@ -87,15 +87,3 @@ Vec4 Vec4::multiplyWithScalar(double scalar)
 {
     return Vec4(this->x * scalar, this->y * scalar, this->z * scalar, this->t * scalar, this->colorId);
 }
-
-// Vec4 Vec4::multiplyMatrixVec4(Matrix4 m, Vec4 v)
-// {
-//     Vec4 result;
-
-//     result.x = v.x * m.values[0][0] + v.y * m.values[1][0] + v.z * m.values[2][0] + v.t * m.values[3][0];
-//     result.y = v.x * m.values[0][1] + v.y * m.values[1][1] + v.z * m.values[2][1] + v.t * m.values[3][1];
-//     result.z = v.x * m.values[0][2] + v.y * m.values[1][2] + v.z * m.values[2][2] + v.t * m.values[3][2];
-//     result.t = v.x * m.values[0][3] + v.y * m.values[1][3] + v.z * m.values[2][3] + v.t * m.values[3][3];
-
-//     return result;
-// }

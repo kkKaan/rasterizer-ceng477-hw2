@@ -14,7 +14,6 @@ public:
     friend std::ostream &operator<<(std::ostream &os, const Matrix4 &m);
 
     Matrix4 operator*(const Matrix4 &other);
-    // static Matrix4 createOrthographicProjectionMatrix(Camera *camera);
 };
 
 #endif

@@ -70,22 +70,22 @@ double adjustForNegativeZero(double value)
     return value;
 }
 
-Vec3 Vec3::translateVec3(Vec3 v, Translation t)
+Vec3 Vec3::translateVec3(Translation t)
 {
-    return Vec3(adjustForNegativeZero(v.x + t.tx), adjustForNegativeZero(v.y + t.ty), adjustForNegativeZero(v.z + t.tz), v.colorId);
+    return Vec3(adjustForNegativeZero(this->x + t.tx), adjustForNegativeZero(this->y + t.ty), adjustForNegativeZero(this->z + t.tz), this->colorId);
 }
 
-Vec3 Vec3::scaleVec3(Vec3 v, Scaling s)
+Vec3 Vec3::scaleVec3(Scaling s)
 {
-    return Vec3(adjustForNegativeZero(v.x * s.sx), adjustForNegativeZero(v.y * s.sy), adjustForNegativeZero(v.z * s.sz), v.colorId);
+    return Vec3(adjustForNegativeZero(this->x * s.sx), adjustForNegativeZero(this->y * s.sy), adjustForNegativeZero(this->z * s.sz), this->colorId);
 }
 
-Vec3 Vec3::rotateVec3(Vec3 v, Rotation r)
+Vec3 Vec3::rotateVec3(Rotation r)
 {
     // Rodrigues' rotation formula
-    double x = v.x;
-    double y = v.y;
-    double z = v.z;
+    double x = this->x;
+    double y = this->y;
+    double z = this->z;
 
     double angle = r.angle * M_PI / 180.0;
 
@@ -96,5 +96,5 @@ Vec3 Vec3::rotateVec3(Vec3 v, Rotation r)
     double yPrime = ((1 - cosTheta) * r.ux * r.uy + r.uz * sinTheta) * x + (cosTheta + (1 - cosTheta) * pow(r.uy, 2)) * y + ((1 - cosTheta) * r.uy * r.uz - r.ux * sinTheta) * z;
     double zPrime = ((1 - cosTheta) * r.ux * r.uz - r.uy * sinTheta) * x + ((1 - cosTheta) * r.uy * r.uz + r.ux * sinTheta) * y + (cosTheta + (1 - cosTheta) * pow(r.uz, 2)) * z;
 
-    return Vec3(xPrime, yPrime, zPrime, v.colorId);
+    return Vec3(xPrime, yPrime, zPrime, this->colorId);
 }

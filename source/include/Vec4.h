@@ -24,9 +24,8 @@ public:
     Vec4 operator-(const Vec4 &v);
     Vec4 operator+(const Vec4 &v);
 
-    Vec4 translateVec4(Vec4 v, Translation t);
-    Vec4 scaleVec4(Vec4 v, Scaling s);
-    // Vec4 multiplyMatrixVec4(Matrix4 m, Vec4 v);
+    Vec4 translateVec4(Translation t);
+    Vec4 scaleVec4(Scaling s);
     Vec4 multiplyWithScalar(double scalar);
 };
 

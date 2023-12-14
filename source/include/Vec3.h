@@ -27,9 +27,9 @@ public:
     friend std::ostream &operator<<(std::ostream &os, const Vec3 &v);
     Vec3 operator-(const Vec3 &v);
 
-    Vec3 translateVec3(Vec3 v, Translation t);
-    Vec3 scaleVec3(Vec3 v, Scaling s);
-    Vec3 rotateVec3(Vec3 v, Rotation r);
+    Vec3 translateVec3(Translation t);
+    Vec3 scaleVec3(Scaling s);
+    Vec3 rotateVec3(Rotation r);
 };
 
 #endif
