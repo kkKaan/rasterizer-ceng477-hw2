@@ -651,6 +651,121 @@ bool clippedLine(Scene *scene,Vec4 & v1_t, Vec4 & v2_t, Color & c1, Color & c2) 
 	return result;
 }
 
+void drawLine(Scene *scene, Vec4&v1, Vec4 &v2, Camera *camera){
+	int x,y;
+	double d;
+	double y0,y1;
+	double x0,x1;
+	Color c;
+	Color dc;
+	double slope = 0;
+	if(x1!=x0) slope = abs(v1.y-v2.y)/abs(v1.x-v2.x);
+	if(slope<=1){
+		if( v1.x <= v2.x ){
+		x0 = v1.x;
+		x1 = v2.x;
+		y0 = v1.y;
+		y1 = v2.y;
+		c = *scene->colorsOfVertices[v1.colorId-1];
+		dc.r = (scene->colorsOfVertices[v2.colorId-1]->r - scene->colorsOfVertices[v1.colorId-1]->r)/(x1-x0);
+		dc.g = (scene->colorsOfVertices[v2.colorId-1]->g - scene->colorsOfVertices[v1.colorId-1]->g)/(x1-x0);
+		dc.b = (scene->colorsOfVertices[v2.colorId-1]->b - scene->colorsOfVertices[v1.colorId-1]->b)/(x1-x0);
+		}
+		else{
+		x0 = v2.x;
+		x1 = v1.x;
+		y0 = v2.y;
+		y1 = v1.y;
+		c = *scene->colorsOfVertices[v2.colorId-1];
+		dc.r = (scene->colorsOfVertices[v1.colorId-1]->r - scene->colorsOfVertices[v2.colorId-1]->r)/(x1-x0);
+		dc.g = (scene->colorsOfVertices[v1.colorId-1]->g - scene->colorsOfVertices[v2.colorId-1]->g)/(x1-x0);
+		dc.b = (scene->colorsOfVertices[v1.colorId-1]->b - scene->colorsOfVertices[v2.colorId-1]->b)/(x1-x0);
+		}
+		y = y0;
+		int dy = y0<y1? (y0-y1) : (y1-y0);
+		d = 2*dy + 0.5*(x1-x0);
+
+		for(x = x0; x <= x1; x+=1){
+			if(x<0) continue;
+			if(y<0){
+				if(y0<y1) {y+=1; continue;}
+				else break;
+			}
+			if(x >= camera->horRes) break;
+			if(y >= (camera->verRes)){
+				if(y0<y1) break;
+				else y-=1;
+				continue;
+			}
+			scene->image[x][y] = c;
+			if(d<0){
+				if(y0<y1) y+=1;
+				else y-=1;
+				d+= 2*(dy + (x1-x0));
+			}
+			else{
+				d+= 2*dy;
+			}
+			c.r += dc.r;
+			c.g += dc.g;
+			c.b += dc.b;
+		}
+	}
+	else{
+		if( v1.y <= v2.y ){
+			y0 = v1.y;
+			y1 = v2.y;
+			x0 = v1.x;
+			x1 = v2.x;
+			c = *scene->colorsOfVertices[v1.colorId-1];
+			dc.r = (scene->colorsOfVertices[v2.colorId-1]->r - scene->colorsOfVertices[v1.colorId-1]->r)/(y1-y0);
+			dc.g = (scene->colorsOfVertices[v2.colorId-1]->g - scene->colorsOfVertices[v1.colorId-1]->g)/(y1-y0);
+			dc.b = (scene->colorsOfVertices[v2.colorId-1]->b - scene->colorsOfVertices[v1.colorId-1]->b)/(y1-y0);
+		}
+		else{
+			y0 = v2.y;
+			y1 = v1.y;
+			x0 = v2.x;
+			x1 = v1.x;
+			c = *scene->colorsOfVertices[v2.colorId-1];
+			dc.r = (scene->colorsOfVertices[v1.colorId-1]->r - scene->colorsOfVertices[v2.colorId-1]->r)/(y1-y0);
+			dc.g = (scene->colorsOfVertices[v1.colorId-1]->g - scene->colorsOfVertices[v2.colorId-1]->g)/(y1-y0);
+			dc.b = (scene->colorsOfVertices[v1.colorId-1]->b - scene->colorsOfVertices[v2.colorId-1]->b)/(y1-y0);
+		}
+		x = x0;
+		int dy = x0<x1? (x0-x1) : (x1-x0);
+		d = 2*dy + 0.5*(y1-y0);
+
+		for(y = y0; y <= y1; y+=1){
+			if(y<0) continue;
+			if(x<0){
+				if(x0<x1) {x+=1; continue;}
+				else break;
+			}
+			if(y >= camera->verRes) break;
+			if(x >= (camera->horRes)){
+				if(x0<x1) break;
+				else x-=1;
+				continue;
+			}
+			
+			scene->image[x][y] = c;
+			if(d<0){
+				if(x0<x1) x+=1;
+				else x-=1;
+				d+= 2*(dy + (y1-y0));
+			}
+			else{
+				d+= 2*dy;
+			}
+			c.r += dc.r;
+			c.g += dc.g;
+			c.b += dc.b;
+		}
+	}
+	
+}
+
 /////////////////////////////////////////////////////////////////////////////////
 
 Color Scene::interpolateColor(const Color &c1, const Color &c2, double t)
@@ -712,46 +827,46 @@ void Scene::forwardRenderingPipeline(Camera *camera)
                 Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1]; Vec3 &v1temp = v1;
                 Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1]; Vec3 &v2temp = v2;
 
-				Vec4 v0Homogeneous(v0.x, v0.y, v0.z, 1); Vec4 v0tempHomogeneous(v0temp.x, v0temp.y, v0temp.z, 1);
-				Vec4 v1Homogeneous(v1.x, v1.y, v1.z, 1); Vec4 v1tempHomogeneous(v1temp.x, v1temp.y, v1temp.z, 1);
-				Vec4 v2Homogeneous(v2.x, v2.y, v2.z, 1); Vec4 v2tempHomogeneous(v2temp.x, v2temp.y, v2temp.z, 1);
+				Vec4 v0Homogeneous(v0.x, v0.y, v0.z, 1, v0.colorId); Vec4 v0tempHomogeneous(v0temp.x, v0temp.y, v0temp.z, 1, v0temp.colorId);
+				Vec4 v1Homogeneous(v1.x, v1.y, v1.z, 1, v1.colorId); Vec4 v1tempHomogeneous(v1temp.x, v1temp.y, v1temp.z, 1, v1temp.colorId);
+				Vec4 v2Homogeneous(v2.x, v2.y, v2.z, 1, v2.colorId); Vec4 v2tempHomogeneous(v2temp.x, v2temp.y, v2temp.z, 1, v2temp.colorId);
 
                 // Clip each edge of the triangle
 				printf ("liangBarskyClip\n");
                 if (liangBarskyClip(camera, v0, v1))
 				{
 					printf ("lineRasterizer v0-v1 \n");
-					// drawLine(camera, &v0, &v1, this->colorsOfVertices[v0.colorId - 1], this->colorsOfVertices[v1.colorId - 1]);
+					drawLine(this, v0tempHomogeneous, v1tempHomogeneous, camera);
 				}
 				if (liangBarskyClip(camera, v1temp, v2))
 				{
 					printf ("lineRasterizer v1-v2 \n");
-					// drawLine(camera, &v1temp, &v2, this->colorsOfVertices[v1.colorId - 1], this->colorsOfVertices[v2.colorId - 1]);
+					drawLine(this, v1tempHomogeneous, v2tempHomogeneous, camera);
 				}
 				if (liangBarskyClip(camera, v2temp, v0temp))
 				{
 					printf ("lineRasterizer v2-v0 \n");
-					// drawLine(camera, &v2temp, &v0temp, this->colorsOfVertices[v2.colorId - 1], this->colorsOfVertices[v0.colorId - 1]);
+					drawLine(this, v2tempHomogeneous, v0tempHomogeneous, camera);
 				}
 
 				printf("--------------------\n");
 
-				printf("clipping\n");
-				if (clippedLine(this, v0Homogeneous, v1Homogeneous, *this->colorsOfVertices[v0.colorId - 1], *this->colorsOfVertices[v1.colorId - 1]))
-				{
-					printf ("lineRasterizer v0-v1 \n");
-					// drawLine(camera, &v0, &v1, this->colorsOfVertices[v0.colorId - 1], this->colorsOfVertices[v1.colorId - 1]);
-				}
-				if (clippedLine(this, v1tempHomogeneous, v2Homogeneous, *this->colorsOfVertices[v1.colorId - 1], *this->colorsOfVertices[v2.colorId - 1]))
-				{
-					printf ("lineRasterizer v1-v2 \n");
-					// drawLine(camera, &v1temp, &v2, this->colorsOfVertices[v1.colorId - 1], this->colorsOfVertices[v2.colorId - 1]);
-				}
-				if (clippedLine(this, v2tempHomogeneous, v0tempHomogeneous, *this->colorsOfVertices[v2.colorId - 1], *this->colorsOfVertices[v0.colorId - 1]))
-				{
-					printf ("lineRasterizer v2-v0 \n");
-					// drawLine(camera, &v2temp, &v0temp, this->colorsOfVertices[v2.colorId - 1], this->colorsOfVertices[v0.colorId - 1]);
-				}
+				// printf("clipping\n");
+				// if (clippedLine(this, v0Homogeneous, v1Homogeneous, *this->colorsOfVertices[v0.colorId - 1], *this->colorsOfVertices[v1.colorId - 1]))
+				// {
+				// 	printf ("lineRasterizer v0-v1 \n");
+				// 	drawLine(this, v0tempHomogeneous, v1tempHomogeneous, camera);
+				// }
+				// if (clippedLine(this, v1tempHomogeneous, v2Homogeneous, *this->colorsOfVertices[v1.colorId - 1], *this->colorsOfVertices[v2.colorId - 1]))
+				// {
+				// 	printf ("lineRasterizer v1-v2 \n");
+				// 	drawLine(this, v1tempHomogeneous, v2tempHomogeneous, camera);
+				// }
+				// if (clippedLine(this, v2tempHomogeneous, v0tempHomogeneous, *this->colorsOfVertices[v2.colorId - 1], *this->colorsOfVertices[v0.colorId - 1]))
+				// {
+				// 	printf ("lineRasterizer v2-v0 \n");
+				// 	drawLine(this, v2tempHomogeneous, v0tempHomogeneous, camera);
+				// }
 
 				printf("--------------------\n");
 
