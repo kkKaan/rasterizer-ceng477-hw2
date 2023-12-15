@@ -23,6 +23,7 @@ public:
     friend std::ostream &operator<<(std::ostream &os, const Vec4 &v);
     Vec4 operator-(const Vec4 &v);
     Vec4 operator+(const Vec4 &v);
+    Vec4 operator/(const double scalar) const;
 
     Vec4 translateVec4(Translation t);
     Vec4 scaleVec4(Scaling s);

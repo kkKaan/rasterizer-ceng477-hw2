@@ -48,6 +48,9 @@ public:
 	void convertPPMToPNG(std::string ppmFileName);
 	void forwardRenderingPipeline(Camera *camera);
 
+	Matrix4 createModelTransformationMatrix(Mesh *mesh);
+	Matrix4 createCameraTransformationMatrix(Camera *camera);
+
 	void applyModelTransformation(Mesh *mesh, Triangle& triangle);
 	void applyCameraTransformation(Camera *camera, Triangle& triangle);
 	void applyViewportTransformation(Camera *camera, Triangle& triangle);
@@ -56,7 +59,7 @@ public:
 	// void clipLine(Camera *camera, Vec3 &p0, Vec3 &p1);
 	// void clipTriangle(Camera *camera, Triangle& triangle);
 
-	bool liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1);
+	bool liangBarskyClip(Camera *camera, Vec4 &p0, Vec4 &p1);
 	// void drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2);
 
 	// bool clipping(Camera& camera, Vec4 &vec0, Vec4 &vec1);

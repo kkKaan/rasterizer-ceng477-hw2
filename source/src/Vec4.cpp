@@ -83,6 +83,14 @@ Vec4 Vec4::operator+(const Vec4 &v)
     return Vec4(this->x + v.x, this->y + v.y, this->z + v.z, this->t + v.t);
 }
 
+Vec4 Vec4::operator/(const double scalar) const {
+    if (scalar != 0) {
+        return Vec4(x / scalar, y / scalar, z / scalar, t / scalar, colorId);
+    } else {
+        return Vec4();
+    }
+}
+
 Vec4 Vec4::multiplyWithScalar(double scalar)
 {
     return Vec4(this->x * scalar, this->y * scalar, this->z * scalar, this->t * scalar, this->colorId);

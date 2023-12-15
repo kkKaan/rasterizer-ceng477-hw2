@@ -610,19 +610,122 @@ Matrix4 createOrthographicProjectionMatrix(Camera *camera)
 */
 Matrix4 createPerspectiveProjectionMatrix(Camera *camera)
 {
-    double aspectRatio = static_cast<double>(camera->horRes) / camera->verRes;
-    double fovyRadians = 2 * atan((camera->top - camera->bottom) / (2 * camera->near)); // Field of view in radians
-    double f = 1.0 / tan(fovyRadians / 2); // Focal length
-
     double perspectiveMatrixValues[4][4] = {
-        {f / aspectRatio, 0, 0, 0},
-        {0, f, 0, 0},
-        {0, 0, (camera->far + camera->near) / (camera->near - camera->far), 2 * camera->far * camera->near / (camera->near - camera->far)},
+        {(2 * camera->near) / (camera->right - camera-> left), 0, (camera->right + camera-> left) / (camera->right - camera-> left), 0},
+        {0, (2 * camera->near) / (camera->top - camera-> bottom), (camera->top + camera-> bottom) / (camera->top - camera-> bottom), 0},
+        {0, 0, -(camera->far + camera->near) / (camera->far - camera->near), -(2 * camera->far * camera->near) / (camera->far - camera->near)},
         {0, 0, -1, 0}
     };
 
     return Matrix4(perspectiveMatrixValues);
 }
+
+Matrix4 createViewportMatrix(Camera *camera)
+{
+	double viewportMatrixValues[4][4] = {
+		{camera->horRes / 2.0, 0, 0, (camera->horRes - 1) / 2.0},
+		{0, camera->verRes / 2.0, 0, (camera->verRes - 1) / 2.0},
+		{0, 0, 0.5, 0.5},
+		{0, 0, 0, 1.0}
+	};
+
+	return Matrix4(viewportMatrixValues);
+}
+
+Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
+{
+	Matrix4 returnMatrix = getIdentityMatrix();
+
+	for (int i = 0; i < mesh->numberOfTransformations; i++)
+	{
+		char transformationType = mesh->transformationTypes[i];
+		int transformationId = mesh->transformationIds[i] - 1;
+
+		switch (transformationType)
+		{
+			case 't':
+			{
+				Translation *translation = this->translations[transformationId];
+				double translationMatrixValues[4][4] = 
+				{
+					{1, 0, 0, translation->tx},
+					{0, 1, 0, translation->ty},
+					{0, 0, 1, translation->tz},
+					{0, 0, 0, 1}
+				};
+				Matrix4 translationMatrix(translationMatrixValues);
+				returnMatrix = multiplyMatrixWithMatrix(translationMatrix, returnMatrix);
+				break;
+			}
+			case 's':
+			{
+				Scaling *scaling = this->scalings[transformationId];
+				double scalingMatrixValues[4][4] = 
+				{
+					{scaling->sx, 0, 0, 0},
+					{0, scaling->sy, 0, 0},
+					{0, 0, scaling->sz, 0},
+					{0, 0, 0, 1}
+				};
+				Matrix4 scalingMatrix(scalingMatrixValues);
+				returnMatrix = multiplyMatrixWithMatrix(scalingMatrix, returnMatrix);
+				break;
+			}
+			case 'r':
+			{
+				Rotation *rotation = this->rotations[transformationId];
+				double rotationMatrixValues[4][4] = 
+				{
+					{rotation->ux * rotation->ux * (1 - cos(rotation->angle)) + cos(rotation->angle), rotation->ux * rotation->uy * (1 - cos(rotation->angle)) - rotation->uz * sin(rotation->angle), rotation->ux * rotation->uz * (1 - cos(rotation->angle)) + rotation->uy * sin(rotation->angle), 0},
+					{rotation->uy * rotation->ux * (1 - cos(rotation->angle)) + rotation->uz * sin(rotation->angle), rotation->uy * rotation->uy * (1 - cos(rotation->angle)) + cos(rotation->angle), rotation->uy * rotation->uz * (1 - cos(rotation->angle)) - rotation->ux * sin(rotation->angle), 0},
+					{rotation->uz * rotation->ux * (1 - cos(rotation->angle)) - rotation->uy * sin(rotation->angle), rotation->uz * rotation->uy * (1 - cos(rotation->angle)) + rotation->ux * sin(rotation->angle), rotation->uz * rotation->uz * (1 - cos(rotation->angle)) + cos(rotation->angle), 0},
+					{0, 0, 0, 1}
+				};
+				Matrix4 rotationMatrix(rotationMatrixValues);
+				returnMatrix = multiplyMatrixWithMatrix(rotationMatrix, returnMatrix);
+				break;
+			}
+		}
+	}
+
+	return returnMatrix;
+}
+
+Matrix4 Scene::createCameraTransformationMatrix(Camera* camera)
+{
+	double rotationMatrixValues[4][4] = 
+	{
+		{camera->u.x, camera->u.y, camera->u.z, 0},
+		{camera->v.x, camera->v.y, camera->v.z, 0},
+		{camera->w.x, camera->w.y, camera->w.z, 0},
+		{0, 0, 0, 1}
+	};
+	Matrix4 rotationMatrix(rotationMatrixValues);
+
+	double translationMatrixValues[4][4] = 
+	{
+		{1, 0, 0, -camera->position.x},
+		{0, 1, 0, -camera->position.y},
+		{0, 0, 1, -camera->position.z},
+		{0, 0, 0, 1}
+	};
+	Matrix4 translationMatrix(translationMatrixValues);
+
+	return multiplyMatrixWithMatrix(rotationMatrix, translationMatrix);
+}
+
+bool cull_triangle(Vec4 &vertex1, Vec4 &vertex2, Vec4 &vertex3){
+	//Take the vertices and calculate the normal vector.
+	Vec3 edge2_1 = Vec3(vertex2.x - vertex1.x, vertex2.y - vertex1.y, vertex2.z - vertex1.z, -1);
+	Vec3 edge3_1 = Vec3(vertex3.x - vertex1.x, vertex3.y - vertex1.y, vertex3.z - vertex1.z, -1);
+
+	Vec3 normal_vector = normalizeVec3(crossProductVec3(edge2_1, edge3_1));
+
+	double dot_product = dotProductVec3(normal_vector, Vec3(vertex1.x, vertex1.y, vertex1.z, -1));
+
+	return dot_product < 0;
+}
+
 
 /*
 	Applies model transformations (translation, rotation, scaling) to the mesh.
@@ -768,8 +871,7 @@ void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
 	
 
 	// Perspective division
-	if (camera->projectionType == 1)
-	{
+	if(camera->projectionType == 1){
 		projectedVertex1.x /= projectedVertex1.t;
 		projectedVertex1.y /= projectedVertex1.t;
 		projectedVertex1.z /= projectedVertex1.t;
@@ -825,54 +927,112 @@ void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 /*
 	Liang-Barsky Algorithm for clipping	
 */
-bool Scene::liangBarskyClip(Camera *camera, Vec3 &p0, Vec3 &p1) /// ??????????????
+bool Scene::liangBarskyClip(Camera *camera, Vec4 &p0, Vec4 &p1) /// ??????????????
 {
-    double dx = abs(p1.x - p0.x);
-    double dy = abs(p1.y - p0.y);
-	double dz = abs(p1.z - p0.z);
-    double p[6], q[6];
-	double t;
-    double t0 = 0.0;
-    double t1 = 1.0;
+    // double dx = abs(p1.x - p0.x);
+    // double dy = abs(p1.y - p0.y);
+	// double dz = abs(p1.z - p0.z);
+    // double p[6], q[6];
+    // double t0 = 0.0;
+    // double t1 = 1.0;
 
-	p[0] = dx;  q[0] = 0 - 1 - p0.x; // Left
-	p[1] = -dx; q[1] = p0.x - 1; // Right
-	p[2] = dy;  q[2] = 0 - 1 - p0.y; // Bottom
-	p[3] = -dy; q[3] = p0.y - 1;  // Top
-	p[4] = dz;  q[4] = 0 - 1 - p0.z; // Front
-	p[5] = -dz; q[5] = p0.z - 1;  // Back
+	// p[0] = dx;  q[0] = 0 - 1 - p0.x; // Left
+	// p[1] = -dx; q[1] = p0.x - 1; // Right
+	// p[2] = dy;  q[2] = 0 - 1 - p0.y; // Bottom
+	// p[3] = -dy; q[3] = p0.y - 1;  // Top
+	// p[4] = dz;  q[4] = 0 - 1 - p0.z; // Front
+	// p[5] = -dz; q[5] = p0.z - 1;  // Back
 
-    for (int i = 0; i < 4; i++)
-    {
-        if (p[i] > 0)
-        {
-            t = q[i] / p[i];
-			if (t > t1) return false; // Line is outside
-			if (t > t0) t0 = t; // Line enters clipping area
-        }
-        else if (p[i] < 0)
-		{
-			t = q[i] / p[i];
-			if (t < t0) return false; // Line is outside
-			if (t < t1) t1 = t; // Line exits clipping area
+    // for (int i = 0; i < 6; i++)
+    // {
+    //     if (p[i] > 0)
+    //     {
+    //         double t = q[i] / p[i];
+	// 		if (t > t1) return false; // Line is outside
+	// 		if (t > t0) t0 = t; // Line enters clipping area
+    //     }
+    //     else if (p[i] < 0)
+	// 	{
+	// 		double t = q[i] / p[i];
+	// 		if (t < t0) return false; // Line is outside
+	// 		if (t < t1) t1 = t; // Line exits clipping area
+	// 	}
+	// 	else if (q[i] > 0) return false; // Line is outside
+    // }
+
+    // if (t1 < 1)
+    // {
+    //     p1.x = p0.x + t1 * dx;
+    //     p1.y = p0.y + t1 * dy;
+	// 	p1.z = p0.z + t1 * dz;
+    // }
+    // if (t0 > 0)
+    // {
+    //     p0.x += t0 * dx;
+    //     p0.y += t0 * dy;
+	// 	p0.z += t0 * dz;
+    // }
+
+    // return true; // Line is inside or intersects the clipping area
+
+	double x_min = -1;
+	double x_max = 1;
+	double y_min = -1;
+	double y_max = 1;
+	double z_min = -1;
+	double z_max = 1;
+
+	double t_E = 0;
+	double t_L = 1;
+
+	double dx = p1.x - p0.x;
+	double dy = p1.y - p0.y;
+	double dz = p1.z - p0.z;
+
+	double p[6] = {dx, -dx, dy, -dy, dz, -dz}; //Den
+
+	double q[6] = {x_min - p0.x, p0.x - x_max, y_min - p0.y, p0.y - y_max, z_min - p0.z, p0.z - z_max}; //Num
+
+	for(int i = 0; i < 6; i++){
+		if(p[i] > 0){
+			double t = q[i] / p[i];
+
+			if(t > t_L){
+				return false;
+			}
+			else if(t > t_E){
+				t_E = t;
+			}
 		}
-		else if (q[i] > 0) return false; // Line is outside
-    }
+		else if(p[i] < 0){
+			double t = q[i] / p[i];
 
-    if (t1 < 1)
-    {
-        p1.x = p0.x + t1 * dx;
-        p1.y = p0.y + t1 * dy;
-		p1.z = p0.z + t1 * dz;
-    }
-    if (t0 > 0)
-    {
-        p0.x += t0 * dx;
-        p0.y += t0 * dy;
-		p0.z += t0 * dz;
-    }
+			if(t < t_E){
+				return false;
+			}
+			else if(t < t_L){
+				t_L = t;
+			}
+		}
+		else if(q[i] > 0){
+			return false;
+		}
+	}
 
-    return true; // Line is inside or intersects the clipping area
+	if(t_L < 1){
+		p1.x = p0.x + t_L * dx;
+		p1.y = p0.y + t_L * dy;
+		p1.z = p0.z + t_L * dz;
+	}
+
+	if(t_E > 0){
+		p1.x = p0.x + t_E * dx;
+		p1.y = p0.y + t_E * dy;
+		p1.z = p0.z + t_E * dz;
+	}
+	
+
+	return true;
 }
 
 Color Scene::interpolateColor(const Color &c1, const Color &c2, double t)
@@ -907,73 +1067,191 @@ bool Scene::isTriangleBackFacing(const Triangle& triangle, Camera *camera)
 /*
 	Rasterizes triangle.
 */
+void rasterize_line(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector< vector<Color> > &image, int horRes, int verRes){
+	double dx = abs(v2.x - v1.x);
+	double dy = abs(v2.y - v1.y);
 
+	int step;
+	Color color, dc;
+	double d, x, y;
+
+	// slope m = (0,1]
+	if(dx >= dy){
+
+		if(v2.x < v1.x){
+			swap(v1, v2);
+			swap(c1, c2);
+		}
+
+		if(v2.y >= v1.y){
+			step = 1;
+		}
+		else{
+			step = -1;
+		}
+
+		color = c1;
+		d = (v1.y - v2.y) + 0.5 * step * (v2.x - v1.x);
+		dc = (c2 - c1) / (v2.x - v1.x);
+		y = v1.y;
+
+		for(x = v1.x; x <= v2.x; x++){
+			if(x >= 0 && x <= horRes && y >= 0 && y <= verRes)  {
+				image[x][y] = color;
+			}
+
+			if(d * step < 0){
+				y = y + step;
+				d += (v1.y - v2.y) + step * (v2.x - v1.x);
+			}
+			
+			else{
+				d += (v1.y - v2.y);
+			}
+			color = color + dc;
+		}
+
+	}
+
+	// slope m = (1, inf)
+	else{
+		if(v2.y < v1.y){
+			swap(v1, v2);
+			swap(c1, c2);
+		}
+
+		if(v2.x >= v1.x){
+			step = 1;
+		}
+		else{
+			step = -1;
+		}
+
+		color = c1;
+		d = (v2.x - v1.x) + 0.5 * step * (v1.y - v2.y);
+		dc = (c2 - c1) / (v2.y - v1.y);
+		x = v1.x;
+
+		for(y = v1.y; y <= v2.y; y++){
+			if(x >= 0 && x <= horRes && y >= 0 && y <= verRes)  {
+				image[x][y] = color;
+			}
+
+			if(d * step > 0){
+				x = x + step;
+				d += (v2.x - v1.x) + step * (v1.y - v2.y);
+			}
+			
+			else{
+				d += (v2.x - v1.x);
+			}
+			color = color + dc;
+		}
+	}
+
+}
 
 /*
 	Transformations, clipping, culling, rasterization are done here.
 */
 void Scene::forwardRenderingPipeline(Camera *camera)
 {
+	// Vec3 xAxis = crossProductVec3(camera->gaze, camera->v);
+	// camera->u = normalizeVec3(xAxis);
 	// printf ("mesh count: %d\n", this->meshes.size());
+	Matrix4 cameraMatrix = createCameraTransformationMatrix(camera);
+	Matrix4 projectionMatrix = (camera->projectionType == 0) ? createOrthographicProjectionMatrix(camera) : createPerspectiveProjectionMatrix(camera);
+	Matrix4 viewportMatrix = createViewportMatrix(camera);
+
     for (Mesh *mesh : this->meshes)
     {
 		// printf ("triangle count: %d\n", mesh->triangles.size());
+		Matrix4 modelMatrix = createModelTransformationMatrix(mesh);
+		Matrix4 modelViewMatrix = multiplyMatrixWithMatrix(cameraMatrix, modelMatrix);
+		Matrix4 modelViewProjectionMatrix = multiplyMatrixWithMatrix(projectionMatrix, modelViewMatrix);
 
 		for (int i = 0; i < mesh->triangles.size(); ++i)
         {
 			Triangle triangle = mesh->triangles[i];
             // Apply transformations
-            applyModelTransformation(mesh, triangle);
-            applyCameraTransformation(camera, triangle);
-            applyViewportTransformation(camera, triangle);
+            // applyModelTransformation(mesh, triangle);
+            // applyCameraTransformation(camera, triangle);
 
             if (mesh->type == 0) // wireframe
             {
 				// printf ("wireframe, camera %d\n", camera->cameraId);
-                Vec3 &v0 = *vertices[triangle.vertexIds[0] - 1]; Vec3 &v0temp = v0;
-                Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1]; Vec3 &v1temp = v1;
-                Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1]; Vec3 &v2temp = v2;
+                Vec3 &v0 = *vertices[triangle.vertexIds[0] - 1];
+                Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1];
+                Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1];
 
-				Vec4 v0Homogeneous(v0.x, v0.y, v0.z, 1, v0.colorId); Vec4 v0tempHomogeneous(v0temp.x, v0temp.y, v0temp.z, 1, v0temp.colorId);
-				Vec4 v1Homogeneous(v1.x, v1.y, v1.z, 1, v1.colorId); Vec4 v1tempHomogeneous(v1temp.x, v1temp.y, v1temp.z, 1, v1temp.colorId);
-				Vec4 v2Homogeneous(v2.x, v2.y, v2.z, 1, v2.colorId); Vec4 v2tempHomogeneous(v2temp.x, v2temp.y, v2temp.z, 1, v2temp.colorId);
+				Color c0 = *colorsOfVertices[v0.colorId - 1]; Color c0temp = *colorsOfVertices[v0.colorId - 1];
+				Color c1 = *colorsOfVertices[v1.colorId - 1]; Color c1temp = *colorsOfVertices[v1.colorId - 1];
+				Color c2 = *colorsOfVertices[v2.colorId - 1]; Color c2temp = *colorsOfVertices[v2.colorId - 1];
 
-                // Clip each edge of the triangle
-				// printf ("liangBarskyClip\n");
-                // if (liangBarskyClip(camera, v0, v1))
+				Vec4 v0Homogeneous(v0.x, v0.y, v0.z, 1, v0.colorId);
+				Vec4 v1Homogeneous(v1.x, v1.y, v1.z, 1, v1.colorId);
+				Vec4 v2Homogeneous(v2.x, v2.y, v2.z, 1, v2.colorId);
+
+				v0Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v0Homogeneous);
+				v1Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v1Homogeneous);
+				v2Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v2Homogeneous);
+
+				if(cullingEnabled){
+					if(cull_triangle(v0Homogeneous, v1Homogeneous, v2Homogeneous)){
+						continue;
+					}
+				}
+
+				v0Homogeneous = v0Homogeneous / v0Homogeneous.t;
+				v1Homogeneous = v1Homogeneous / v1Homogeneous.t;
+				v2Homogeneous = v2Homogeneous / v2Homogeneous.t;
+
+				Vec4 v0tempHomogeneous = v0Homogeneous;
+				Vec4 v1tempHomogeneous = v1Homogeneous;
+				Vec4 v2tempHomogeneous = v2Homogeneous;
+
+				bool edgeOneVisible = liangBarskyClip(camera, v0Homogeneous, v1Homogeneous);
+				bool edgeTwoVisible = liangBarskyClip(camera, v1tempHomogeneous, v2Homogeneous);
+				bool edgeThreeVisible = liangBarskyClip(camera, v2tempHomogeneous, v0tempHomogeneous);
+
+				Matrix4 viewportMatrix = createViewportMatrix(camera);
+
+				v0Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v0Homogeneous);
+				v1Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v1Homogeneous);
+				v2Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v2Homogeneous);
+				v0tempHomogeneous = multiplyMatrixWithVec4(viewportMatrix, v0tempHomogeneous);
+				v1tempHomogeneous = multiplyMatrixWithVec4(viewportMatrix, v1tempHomogeneous);
+				v2tempHomogeneous = multiplyMatrixWithVec4(viewportMatrix, v2tempHomogeneous);
+				
+                if (edgeOneVisible)
+				{
+					rasterize_line(v0Homogeneous, v1Homogeneous, c0, c1, this->image, camera->horRes, camera->verRes);
+				}
+				if (edgeTwoVisible)
+				{
+					rasterize_line(v1tempHomogeneous, v2Homogeneous, c1temp, c2, this->image, camera->horRes, camera->verRes);
+				}
+				if (edgeThreeVisible)
+				{
+					rasterize_line(v2tempHomogeneous, v0tempHomogeneous, c2temp, c0temp, this->image, camera->horRes, camera->verRes);
+				}
+
+				// printf("clipping\n");
+				// if (clipping(*this, v0Homogeneous, v1Homogeneous))
 				// {
 				// 	printf ("lineRasterizer v0-v1 \n");
-				// 	drawLine(this, v0tempHomogeneous, v1tempHomogeneous, camera);
+				// 	drawLine(this, v0Homogeneous, v1Homogeneous, camera);
 				// }
-				// if (liangBarskyClip(camera, v1temp, v2))
+				// if (clipping(*this, v1tempHomogeneous, v2Homogeneous))
 				// {
 				// 	printf ("lineRasterizer v1-v2 \n");
-				// 	drawLine(this, v1tempHomogeneous, v2tempHomogeneous, camera);
+				// 	drawLine(this, v1tempHomogeneous, v2Homogeneous, camera);
 				// }
-				// if (liangBarskyClip(camera, v2temp, v0temp))
+				// if (clipping(*this, v2tempHomogeneous, v0tempHomogeneous))
 				// {
 				// 	printf ("lineRasterizer v2-v0 \n");
 				// 	drawLine(this, v2tempHomogeneous, v0tempHomogeneous, camera);
 				// }
-
-				printf("--------------------\n");
-
-				printf("clipping\n");
-				if (clipping(*this, v0Homogeneous, v1Homogeneous))
-				{
-					printf ("lineRasterizer v0-v1 \n");
-					drawLine(this, v0Homogeneous, v1Homogeneous, camera);
-				}
-				if (clipping(*this, v1tempHomogeneous, v2Homogeneous))
-				{
-					printf ("lineRasterizer v1-v2 \n");
-					drawLine(this, v1tempHomogeneous, v2Homogeneous, camera);
-				}
-				if (clipping(*this, v2tempHomogeneous, v0tempHomogeneous))
-				{
-					printf ("lineRasterizer v2-v0 \n");
-					drawLine(this, v2tempHomogeneous, v0tempHomogeneous, camera);
-				}
 
 				// printf("--------------------\n");
 
@@ -1080,3 +1358,4 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 // 	clipLine(camera, *vertices[triangle.vertexIds[1] - 1], *vertices[triangle.vertexIds[2] - 1]);
 // 	clipLine(camera, *vertices[triangle.vertexIds[2] - 1], *vertices[triangle.vertexIds[0] - 1]);
 // }
+
