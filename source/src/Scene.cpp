@@ -594,7 +594,8 @@ void Scene::convertPPMToPNG(string ppmFileName)
 
 Matrix4 createOrthographicProjectionMatrix(Camera *camera)
 {
-    double orthoMatrixValues[4][4] = {
+    double orthoMatrixValues[4][4] =
+	{
         {2 / (camera->right - camera->left), 0, 0, -(camera->right + camera->left) / (camera->right - camera->left)},
         {0, 2 / (camera->top - camera->bottom), 0, -(camera->top + camera->bottom) / (camera->top - camera->bottom)},
         {0, 0, -2 / (camera->far - camera->near), -(camera->far + camera->near) / (camera->far - camera->near)},
@@ -606,7 +607,8 @@ Matrix4 createOrthographicProjectionMatrix(Camera *camera)
 
 Matrix4 createPerspectiveProjectionMatrix(Camera *camera)
 {
-    double perspectiveMatrixValues[4][4] = {
+    double perspectiveMatrixValues[4][4] =
+	{
         {(2 * camera->near) / (camera->right - camera-> left), 0, (camera->right + camera-> left) / (camera->right - camera-> left), 0},
         {0, (2 * camera->near) / (camera->top - camera-> bottom), (camera->top + camera-> bottom) / (camera->top - camera-> bottom), 0},
         {0, 0, -(camera->far + camera->near) / (camera->far - camera->near), -(2 * camera->far * camera->near) / (camera->far - camera->near)},
@@ -618,7 +620,8 @@ Matrix4 createPerspectiveProjectionMatrix(Camera *camera)
 
 Matrix4 createViewportMatrix(Camera *camera)
 {
-	double viewportMatrixValues[4][4] = {
+	double viewportMatrixValues[4][4] =
+	{
 		{camera->horRes / 2.0, 0, 0, (camera->horRes - 1) / 2.0},
 		{0, camera->verRes / 2.0, 0, (camera->verRes - 1) / 2.0},
 		{0, 0, 0.5, 0.5},
@@ -642,6 +645,7 @@ Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
 			case 't':
 			{
 				Translation *translation = this->translations[transformationId];
+
 				double translationMatrixValues[4][4] = 
 				{
 					{1, 0, 0, translation->tx},
@@ -656,6 +660,7 @@ Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
 			case 's':
 			{
 				Scaling *scaling = this->scalings[transformationId];
+
 				double scalingMatrixValues[4][4] = 
 				{
 					{scaling->sx, 0, 0, 0},
@@ -664,6 +669,7 @@ Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
 					{0, 0, 0, 1}
 				};
 				Matrix4 scalingMatrix(scalingMatrixValues);
+
 				returnMatrix = multiplyMatrixWithMatrix(scalingMatrix, returnMatrix);
 				break;
 			}
@@ -671,6 +677,7 @@ Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
 			{
 				Rotation *rotation = this->rotations[transformationId];
 				double angle = rotation->angle * PI / 180.0;
+
 				double rotationMatrixValues[4][4] = 
 				{
 					{rotation->ux * rotation->ux * (1 - cos(angle)) + cos(angle), rotation->ux * rotation->uy * (1 - cos(angle)) - rotation->uz * sin(angle), rotation->ux * rotation->uz * (1 - cos(angle)) + rotation->uy * sin(angle), 0},
@@ -679,6 +686,7 @@ Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
 					{0, 0, 0, 1}
 				};
 				Matrix4 rotationMatrix(rotationMatrixValues);
+
 				returnMatrix = multiplyMatrixWithMatrix(rotationMatrix, returnMatrix);
 				break;
 			}
@@ -712,7 +720,6 @@ Matrix4 Scene::createCameraTransformationMatrix(Camera* camera)
 }
 
 bool Scene::isTriangleBackFacing(Vec4 &v0, Vec4 &v1, Vec4 &v2){
-	//Take the vertices and calculate the normal vector.
 	Vec3 edge2_1 = Vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z, -1);
 	Vec3 edge3_1 = Vec3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z, -1);
 
@@ -724,7 +731,7 @@ bool Scene::isTriangleBackFacing(Vec4 &v0, Vec4 &v1, Vec4 &v2){
 /*
 	Liang-Barsky Algorithm for clipping	
 */
-bool Scene::liangBarskyClip(Camera *camera, Vec4 &p0, Vec4 &p1) /// ??????????????
+bool Scene::liangBarskyClip(Camera *camera, Vec4 &p0, Vec4 &p1)
 {
     double dx = p1.x - p0.x;
     double dy = p1.y - p0.y;
@@ -784,88 +791,44 @@ Color Scene::interpolateColor(const Color &c1, const Color &c2, double t)
 /*
 	Rasterizes line.
 */
-void rasterize_line(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector< vector<Color> > &image, int horRes, int verRes){
-	double dx = abs(v2.x - v1.x);
-	double dy = abs(v2.y - v1.y);
+void Scene::rasterize_line(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector<vector<Color>> &image, int horRes, int verRes)
+{
+	int x0 = (int)v1.x;
+	int y0 = (int)v1.y;
+	int x1 = (int)v2.x;
+	int y1 = (int)v2.y;
 
-	int step;
-	Color color, dc;
-	double d, x, y;
+	int dx = abs(x1 - x0);
+	int dy = abs(y1 - y0);
 
-	// slope m = (0,1]
-	if(dx >= dy){
+	int sx = (x0 < x1) ? 1 : -1;
+	int sy = (y0 < y1) ? 1 : -1;
 
-		if(v2.x < v1.x){
-			swap(v1, v2);
-			swap(c1, c2);
+	int err = dx - dy;
+
+	while (true)
+	{
+		if (x0 >= 0 && x0 < horRes && y0 >= 0 && y0 < verRes)
+		{
+			image[x0][y0] = interpolateColor(c1, c2, (double)(x0 - v1.x) / (v2.x - v1.x));
 		}
 
-		if(v2.y >= v1.y){
-			step = 1;
+		if (x0 == x1 && y0 == y1)
+			break;
+
+		int e2 = 2 * err;
+
+		if (e2 > -dy)
+		{
+			err -= dy;
+			x0 += sx;
 		}
-		else{
-			step = -1;
-		}
-
-		color = c1;
-		d = (v1.y - v2.y) + 0.5 * step * (v2.x - v1.x);
-		dc = (c2 - c1) / (v2.x - v1.x);
-		y = v1.y;
-
-		for(x = v1.x; x <= v2.x; x++){
-			if(x >= 0 && x <= horRes && y >= 0 && y <= verRes)  {
-				image[x][y] = color;
-			}
-
-			if(d * step < 0){
-				y = y + step;
-				d += (v1.y - v2.y) + step * (v2.x - v1.x);
-			}
-			
-			else{
-				d += (v1.y - v2.y);
-			}
-			color = color + dc;
-		}
-
-	}
-
-	// slope m = (1, inf)
-	else{
-		if(v2.y < v1.y){
-			swap(v1, v2);
-			swap(c1, c2);
-		}
-
-		if(v2.x >= v1.x){
-			step = 1;
-		}
-		else{
-			step = -1;
-		}
-
-		color = c1;
-		d = (v2.x - v1.x) + 0.5 * step * (v1.y - v2.y);
-		dc = (c2 - c1) / (v2.y - v1.y);
-		x = v1.x;
-
-		for(y = v1.y; y <= v2.y; y++){
-			if(x >= 0 && x <= horRes && y >= 0 && y <= verRes)  {
-				image[x][y] = color;
-			}
-
-			if(d * step > 0){
-				x = x + step;
-				d += (v2.x - v1.x) + step * (v1.y - v2.y);
-			}
-			
-			else{
-				d += (v2.x - v1.x);
-			}
-			color = color + dc;
+		if (e2 < dx)
+		{
+			err += dx;
+			y0 += sy;
 		}
 	}
-
 }
 
 /*
@@ -911,9 +874,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				v2Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v2Homogeneous);
 
 				if(cullingEnabled){
-					if(isTriangleBackFacing(v0Homogeneous, v1Homogeneous, v2Homogeneous)){
-						continue;
-					}
+					if(isTriangleBackFacing(v0Homogeneous, v1Homogeneous, v2Homogeneous)) continue;
 				}
 
 				if (camera->projectionType == 1) // perspective
@@ -934,6 +895,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				v0Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v0Homogeneous);
 				v1Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v1Homogeneous);
 				v2Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v2Homogeneous);
+
 				v0tempHomogeneous = multiplyMatrixWithVec4(viewportMatrix, v0tempHomogeneous);
 				v1tempHomogeneous = multiplyMatrixWithVec4(viewportMatrix, v1tempHomogeneous);
 				v2tempHomogeneous = multiplyMatrixWithVec4(viewportMatrix, v2tempHomogeneous);
