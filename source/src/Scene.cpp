@@ -1,5 +1,7 @@
 #include "../include/Scene.h"
 
+#define PI 3.14159265
+
 using namespace tinyxml2;
 using namespace std;
 
@@ -674,11 +676,12 @@ Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
 			case 'r':
 			{
 				Rotation *rotation = this->rotations[transformationId];
+				double angle = rotation->angle * PI / 180.0;
 				double rotationMatrixValues[4][4] = 
 				{
-					{rotation->ux * rotation->ux * (1 - cos(rotation->angle)) + cos(rotation->angle), rotation->ux * rotation->uy * (1 - cos(rotation->angle)) - rotation->uz * sin(rotation->angle), rotation->ux * rotation->uz * (1 - cos(rotation->angle)) + rotation->uy * sin(rotation->angle), 0},
-					{rotation->uy * rotation->ux * (1 - cos(rotation->angle)) + rotation->uz * sin(rotation->angle), rotation->uy * rotation->uy * (1 - cos(rotation->angle)) + cos(rotation->angle), rotation->uy * rotation->uz * (1 - cos(rotation->angle)) - rotation->ux * sin(rotation->angle), 0},
-					{rotation->uz * rotation->ux * (1 - cos(rotation->angle)) - rotation->uy * sin(rotation->angle), rotation->uz * rotation->uy * (1 - cos(rotation->angle)) + rotation->ux * sin(rotation->angle), rotation->uz * rotation->uz * (1 - cos(rotation->angle)) + cos(rotation->angle), 0},
+					{rotation->ux * rotation->ux * (1 - cos(angle)) + cos(angle), rotation->ux * rotation->uy * (1 - cos(angle)) - rotation->uz * sin(angle), rotation->ux * rotation->uz * (1 - cos(angle)) + rotation->uy * sin(angle), 0},
+					{rotation->uy * rotation->ux * (1 - cos(angle)) + rotation->uz * sin(angle), rotation->uy * rotation->uy * (1 - cos(angle)) + cos(angle), rotation->uy * rotation->uz * (1 - cos(angle)) - rotation->ux * sin(angle), 0},
+					{rotation->uz * rotation->ux * (1 - cos(angle)) - rotation->uy * sin(angle), rotation->uz * rotation->uy * (1 - cos(angle)) + rotation->ux * sin(angle), rotation->uz * rotation->uz * (1 - cos(angle)) + cos(angle), 0},
 					{0, 0, 0, 1}
 				};
 				Matrix4 rotationMatrix(rotationMatrixValues);
@@ -822,53 +825,6 @@ void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
 	Vec4 tempProjectedVertex1 = projectedVertex1;
 	Vec4 tempProjectedVertex2 = projectedVertex2;
 	Vec4 tempProjectedVertex3 = projectedVertex3;
-	
-	// printf("--------------------\n");
-
-	// printf("clipping\n");
-	// if (clipping(*this, projectedVertex1, projectedVertex2))
-	// {
-	// 	printf ("lineRasterizer v0-v1 \n");
-	// 	drawLine(this, projectedVertex1, projectedVertex2, camera);
-	// }
-	// if (clipping(*this, tempProjectedVertex2, projectedVertex3))
-	// {
-	// 	printf ("lineRasterizer v1-v2 \n");
-	// 	drawLine(this, tempProjectedVertex2, projectedVertex3, camera);
-	// }
-	// if (clipping(*this, tempProjectedVertex3, tempProjectedVertex1))
-	// {
-	// 	printf ("lineRasterizer v2-v0 \n");
-	// 	drawLine(this, tempProjectedVertex3, tempProjectedVertex1, camera);
-	// }
-
-	// Vec3 projectedV3_1 = Vec3(projectedVertex1.x, projectedVertex1.y, projectedVertex1.z, projectedVertex1.colorId);
-	// Vec3 projectedV3_2 = Vec3(projectedVertex2.x, projectedVertex2.y, projectedVertex2.z, projectedVertex2.colorId);
-	// Vec3 projectedV3_3 = Vec3(projectedVertex3.x, projectedVertex3.y, projectedVertex3.z, projectedVertex3.colorId);
-
-	// Vec3 tempProjectedV3_1 = projectedV3_1;
-	// Vec3 tempProjectedV3_2 = projectedV3_2;
-	// Vec3 tempProjectedV3_3 = projectedV3_3;
-
-	// printf("--------------------\n");
-
-	// printf("liangBarskyClip\n");
-	// if (liangBarskyClip(camera, projectedV3_1, projectedV3_2))
-	// {
-	// 	printf ("lineRasterizer v0-v1 \n");
-	// 	drawLine(this, projectedVertex1, projectedVertex2, camera);
-	// }
-	// if (liangBarskyClip(camera, tempProjectedV3_2, projectedV3_3))
-	// {
-	// 	printf ("lineRasterizer v1-v2 \n");
-	// 	drawLine(this, tempProjectedVertex2, projectedVertex3, camera);
-	// }
-	// if (liangBarskyClip(camera, tempProjectedV3_3, tempProjectedV3_1))
-	// {
-	// 	printf ("lineRasterizer v2-v0 \n");
-	// 	drawLine(this, tempProjectedVertex3, tempProjectedVertex1, camera);
-	// }
-	
 
 	// Perspective division
 	if(camera->projectionType == 1){
@@ -1156,9 +1112,8 @@ void rasterize_line(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector< vector<Color
 */
 void Scene::forwardRenderingPipeline(Camera *camera)
 {
-	// Vec3 xAxis = crossProductVec3(camera->gaze, camera->v);
-	// camera->u = normalizeVec3(xAxis);
-	// printf ("mesh count: %d\n", this->meshes.size());
+	Vec3 xAxis = crossProductVec3(camera->gaze, camera->v);
+	camera->u = normalizeVec3(xAxis);
 	Matrix4 cameraMatrix = createCameraTransformationMatrix(camera);
 	Matrix4 projectionMatrix = (camera->projectionType == 0) ? createOrthographicProjectionMatrix(camera) : createPerspectiveProjectionMatrix(camera);
 	Matrix4 viewportMatrix = createViewportMatrix(camera);
@@ -1202,9 +1157,12 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 					}
 				}
 
-				v0Homogeneous = v0Homogeneous / v0Homogeneous.t;
-				v1Homogeneous = v1Homogeneous / v1Homogeneous.t;
-				v2Homogeneous = v2Homogeneous / v2Homogeneous.t;
+				if (camera->projectionType == 1) // perspective
+				{
+					v0Homogeneous = v0Homogeneous / v0Homogeneous.t;
+					v1Homogeneous = v1Homogeneous / v1Homogeneous.t;
+					v2Homogeneous = v2Homogeneous / v2Homogeneous.t;
+				}
 
 				Vec4 v0tempHomogeneous = v0Homogeneous;
 				Vec4 v1tempHomogeneous = v1Homogeneous;
@@ -1214,15 +1172,13 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				bool edgeTwoVisible = liangBarskyClip(camera, v1tempHomogeneous, v2Homogeneous);
 				bool edgeThreeVisible = liangBarskyClip(camera, v2tempHomogeneous, v0tempHomogeneous);
 
-				Matrix4 viewportMatrix = createViewportMatrix(camera);
-
 				v0Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v0Homogeneous);
 				v1Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v1Homogeneous);
 				v2Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v2Homogeneous);
 				v0tempHomogeneous = multiplyMatrixWithVec4(viewportMatrix, v0tempHomogeneous);
 				v1tempHomogeneous = multiplyMatrixWithVec4(viewportMatrix, v1tempHomogeneous);
 				v2tempHomogeneous = multiplyMatrixWithVec4(viewportMatrix, v2tempHomogeneous);
-				
+
                 if (edgeOneVisible)
 				{
 					rasterize_line(v0Homogeneous, v1Homogeneous, c0, c1, this->image, camera->horRes, camera->verRes);
