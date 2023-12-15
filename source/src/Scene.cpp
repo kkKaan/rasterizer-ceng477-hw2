@@ -592,9 +592,6 @@ void Scene::convertPPMToPNG(string ppmFileName)
 	system(command.c_str());
 }
 
-/*
-	Creates orthographic projection matrix.
-*/
 Matrix4 createOrthographicProjectionMatrix(Camera *camera)
 {
     double orthoMatrixValues[4][4] = {
@@ -607,9 +604,6 @@ Matrix4 createOrthographicProjectionMatrix(Camera *camera)
     return Matrix4(orthoMatrixValues);
 }
 
-/*
-	Creates perspective projection matrix.
-*/
 Matrix4 createPerspectiveProjectionMatrix(Camera *camera)
 {
     double perspectiveMatrixValues[4][4] = {
@@ -717,167 +711,14 @@ Matrix4 Scene::createCameraTransformationMatrix(Camera* camera)
 	return multiplyMatrixWithMatrix(rotationMatrix, translationMatrix);
 }
 
-bool cull_triangle(Vec4 &vertex1, Vec4 &vertex2, Vec4 &vertex3){
+bool Scene::isTriangleBackFacing(Vec4 &v0, Vec4 &v1, Vec4 &v2){
 	//Take the vertices and calculate the normal vector.
-	Vec3 edge2_1 = Vec3(vertex2.x - vertex1.x, vertex2.y - vertex1.y, vertex2.z - vertex1.z, -1);
-	Vec3 edge3_1 = Vec3(vertex3.x - vertex1.x, vertex3.y - vertex1.y, vertex3.z - vertex1.z, -1);
+	Vec3 edge2_1 = Vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z, -1);
+	Vec3 edge3_1 = Vec3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z, -1);
 
-	Vec3 normal_vector = normalizeVec3(crossProductVec3(edge2_1, edge3_1));
-
-	double dot_product = dotProductVec3(normal_vector, Vec3(vertex1.x, vertex1.y, vertex1.z, -1));
-
-	return dot_product < 0;
-}
-
-
-/*
-	Applies model transformations (translation, rotation, scaling) to the mesh.
-*/
-void Scene::applyModelTransformation(Mesh *mesh, Triangle& triangle)
-{
-	Vec3 *vertex1 = this->vertices[triangle.vertexIds[0] - 1];
-	Vec3 *vertex2 = this->vertices[triangle.vertexIds[1] - 1];
-	Vec3 *vertex3 = this->vertices[triangle.vertexIds[2] - 1];
-
-	for (int k = 0; k < mesh->numberOfTransformations; k++)
-	{
-		char transformationType = mesh->transformationTypes[k];
-		int transformationId = mesh->transformationIds[k];
-
-		switch (transformationType)
-		{
-			case 't':
-			{
-				Translation *translation = this->translations[transformationId - 1];
-				*vertex1 = vertex1->translateVec3(*translation);
-				*vertex2 = vertex2->translateVec3(*translation);
-				*vertex3 = vertex3->translateVec3(*translation);
-				break;
-			}
-			case 's':
-			{
-				Scaling *scaling = this->scalings[transformationId - 1];
-				*vertex1 = vertex1->scaleVec3(*scaling);
-				*vertex2 = vertex2->scaleVec3(*scaling);
-				*vertex3 = vertex3->scaleVec3(*scaling);
-				break;
-			}
-			case 'r':
-			{
-				Rotation *rotation = this->rotations[transformationId - 1];
-				*vertex1 = vertex1->rotateVec3(*rotation);
-				*vertex2 = vertex2->rotateVec3(*rotation);
-				*vertex3 = vertex3->rotateVec3(*rotation);
-				break;
-			}
-		}
-	}
-}
-
-/*
-	Applies camera transformations (translation, rotation) to the triangle.
-*/
-void Scene::applyCameraTransformation(Camera *camera, Triangle& triangle)
-{
-	// Constructing the rotation part of the view matrix
-    double rotationMatrixValues[4][4] = {
-		{camera->u.x, camera->u.y, camera->u.z, 0},
-		{camera->v.x, camera->v.y, camera->v.z, 0},
-		{camera->w.x, camera->w.y, camera->w.z, 0},
-		{0, 0, 0, 1}
-	};
-	Matrix4 rotationMatrix = Matrix4(rotationMatrixValues);
-
-    // Constructing the translation part of the view matrix
-    double translationMatrixValues[4][4] = {
-		{1, 0, 0, -camera->position.x},
-		{0, 1, 0, -camera->position.y},
-		{0, 0, 1, -camera->position.z},
-		{0, 0, 0, 1}
-	};
-	Matrix4 translationMatrix = Matrix4(translationMatrixValues);
-
-	// Constructing the projection matrix
-	Matrix4 projectionMatrix = (camera->projectionType == 0) ? createOrthographicProjectionMatrix(camera) : createPerspectiveProjectionMatrix(camera);
-
-    // Combining rotation and translation into the view matrix
-    Matrix4 viewMatrix = multiplyMatrixWithMatrix(rotationMatrix, translationMatrix);
-
-	Vec3 *vertex1 = this->vertices[triangle.vertexIds[0] - 1];
-	Vec3 *vertex2 = this->vertices[triangle.vertexIds[1] - 1];
-	Vec3 *vertex3 = this->vertices[triangle.vertexIds[2] - 1];
-
-	// Convert to homogeneous coordinates
-	Vec4 vertex1Homogeneous(vertex1->x, vertex1->y, vertex1->z, 1, vertex1->colorId); 
-	Vec4 vertex2Homogeneous(vertex2->x, vertex2->y, vertex2->z, 1, vertex2->colorId); 
-	Vec4 vertex3Homogeneous(vertex3->x, vertex3->y, vertex3->z, 1, vertex3->colorId); 
-
-	// Apply view transformation
-	Vec4 transformedVertex1 = multiplyMatrixWithVec4(viewMatrix, vertex1Homogeneous);
-	Vec4 transformedVertex2 = multiplyMatrixWithVec4(viewMatrix, vertex2Homogeneous);
-	Vec4 transformedVertex3 = multiplyMatrixWithVec4(viewMatrix, vertex3Homogeneous);
-
-	// Apply projection transformation
-	Vec4 projectedVertex1 = multiplyMatrixWithVec4(projectionMatrix, transformedVertex1);
-	Vec4 projectedVertex2 = multiplyMatrixWithVec4(projectionMatrix, transformedVertex2);
-	Vec4 projectedVertex3 = multiplyMatrixWithVec4(projectionMatrix, transformedVertex3);
-
-	Vec4 tempProjectedVertex1 = projectedVertex1;
-	Vec4 tempProjectedVertex2 = projectedVertex2;
-	Vec4 tempProjectedVertex3 = projectedVertex3;
-
-	// Perspective division
-	if(camera->projectionType == 1){
-		projectedVertex1.x /= projectedVertex1.t;
-		projectedVertex1.y /= projectedVertex1.t;
-		projectedVertex1.z /= projectedVertex1.t;
-
-		projectedVertex2.x /= projectedVertex2.t;
-		projectedVertex2.y /= projectedVertex2.t;
-		projectedVertex2.z /= projectedVertex2.t;
-
-		projectedVertex3.x /= projectedVertex3.t;
-		projectedVertex3.y /= projectedVertex3.t;
-		projectedVertex3.z /= projectedVertex3.t;
-	}
-
-	// Convert back to 3D coordinates
-	*vertex1 = Vec3(projectedVertex1.x, projectedVertex1.y, projectedVertex1.z, projectedVertex1.colorId);
-	*vertex2 = Vec3(projectedVertex2.x, projectedVertex2.y, projectedVertex2.z, projectedVertex2.colorId);
-	*vertex3 = Vec3(projectedVertex3.x, projectedVertex3.y, projectedVertex3.z, projectedVertex3.colorId);
-}
-
-/*
-	Applies viewport transformation to the triangle.
-*/
-void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
-{
-	double viewportMatrixValues[4][4] = { // viewport in the origin. xmin, ymin 0 
-		{camera->horRes / 2.0, 0, 0, (camera->horRes - 1) / 2.0},
-		{0, camera->verRes / 2.0, 0, (camera->verRes - 1) / 2.0},
-		{0, 0, 0.5, 0.5},
-		{0, 0, 0, 1}
-	};
-	Matrix4 viewportMatrix = Matrix4(viewportMatrixValues);
-
-	Vec3 *vertex1 = this->vertices[triangle.vertexIds[0] - 1];
-	Vec3 *vertex2 = this->vertices[triangle.vertexIds[1] - 1];
-	Vec3 *vertex3 = this->vertices[triangle.vertexIds[2] - 1];
-
-	// Convert to homogeneous coordinates
-	Vec4 vertex1Homogeneous(vertex1->x, vertex1->y, vertex1->z, 1, vertex1->colorId);
-	Vec4 vertex2Homogeneous(vertex2->x, vertex2->y, vertex2->z, 1, vertex2->colorId);
-	Vec4 vertex3Homogeneous(vertex3->x, vertex3->y, vertex3->z, 1, vertex3->colorId);
-
-	// Apply viewport transformation
-	Vec4 transformedVertex1 = multiplyMatrixWithVec4(viewportMatrix, vertex1Homogeneous);
-	Vec4 transformedVertex2 = multiplyMatrixWithVec4(viewportMatrix, vertex2Homogeneous);
-	Vec4 transformedVertex3 = multiplyMatrixWithVec4(viewportMatrix, vertex3Homogeneous);
-
-	// Convert back to 3D coordinates
-	*vertex1 = Vec3(transformedVertex1.x, transformedVertex1.y, transformedVertex1.z, transformedVertex1.colorId);
-	*vertex2 = Vec3(transformedVertex2.x, transformedVertex2.y, transformedVertex2.z, transformedVertex2.colorId);
-	*vertex3 = Vec3(transformedVertex3.x, transformedVertex3.y, transformedVertex3.z, transformedVertex3.colorId);
+	Vec3 normalVector = normalizeVec3(crossProductVec3(edge2_1, edge3_1));
+	double dotProduct = dotProductVec3(normalVector, Vec3(v0.x, v0.y, v0.z, -1));
+	return dotProduct < 0;
 }
 
 /*
@@ -885,110 +726,51 @@ void Scene::applyViewportTransformation(Camera *camera, Triangle& triangle)
 */
 bool Scene::liangBarskyClip(Camera *camera, Vec4 &p0, Vec4 &p1) /// ??????????????
 {
-    // double dx = abs(p1.x - p0.x);
-    // double dy = abs(p1.y - p0.y);
-	// double dz = abs(p1.z - p0.z);
-    // double p[6], q[6];
-    // double t0 = 0.0;
-    // double t1 = 1.0;
-
-	// p[0] = dx;  q[0] = 0 - 1 - p0.x; // Left
-	// p[1] = -dx; q[1] = p0.x - 1; // Right
-	// p[2] = dy;  q[2] = 0 - 1 - p0.y; // Bottom
-	// p[3] = -dy; q[3] = p0.y - 1;  // Top
-	// p[4] = dz;  q[4] = 0 - 1 - p0.z; // Front
-	// p[5] = -dz; q[5] = p0.z - 1;  // Back
-
-    // for (int i = 0; i < 6; i++)
-    // {
-    //     if (p[i] > 0)
-    //     {
-    //         double t = q[i] / p[i];
-	// 		if (t > t1) return false; // Line is outside
-	// 		if (t > t0) t0 = t; // Line enters clipping area
-    //     }
-    //     else if (p[i] < 0)
-	// 	{
-	// 		double t = q[i] / p[i];
-	// 		if (t < t0) return false; // Line is outside
-	// 		if (t < t1) t1 = t; // Line exits clipping area
-	// 	}
-	// 	else if (q[i] > 0) return false; // Line is outside
-    // }
-
-    // if (t1 < 1)
-    // {
-    //     p1.x = p0.x + t1 * dx;
-    //     p1.y = p0.y + t1 * dy;
-	// 	p1.z = p0.z + t1 * dz;
-    // }
-    // if (t0 > 0)
-    // {
-    //     p0.x += t0 * dx;
-    //     p0.y += t0 * dy;
-	// 	p0.z += t0 * dz;
-    // }
-
-    // return true; // Line is inside or intersects the clipping area
-
-	double x_min = -1;
-	double x_max = 1;
-	double y_min = -1;
-	double y_max = 1;
-	double z_min = -1;
-	double z_max = 1;
-
-	double t_E = 0;
-	double t_L = 1;
-
-	double dx = p1.x - p0.x;
-	double dy = p1.y - p0.y;
+    double dx = p1.x - p0.x;
+    double dy = p1.y - p0.y;
 	double dz = p1.z - p0.z;
+    double p[6], q[6];
+    double t0 = 0.0;
+    double t1 = 1.0;
 
-	double p[6] = {dx, -dx, dy, -dy, dz, -dz}; //Den
+	p[0] = dx;  q[0] = -1 - p0.x; // Left
+	p[1] = -dx; q[1] = p0.x - 1; // Right
+	p[2] = dy;  q[2] = -1 - p0.y; // Bottom
+	p[3] = -dy; q[3] = p0.y - 1;  // Top
+	p[4] = dz;  q[4] = -1 - p0.z; // Front
+	p[5] = -dz; q[5] = p0.z - 1;  // Back
 
-	double q[6] = {x_min - p0.x, p0.x - x_max, y_min - p0.y, p0.y - y_max, z_min - p0.z, p0.z - z_max}; //Num
-
-	for(int i = 0; i < 6; i++){
-		if(p[i] > 0){
+    for (int i = 0; i < 6; i++)
+    {
+        if (p[i] > 0)
+        {
+            double t = q[i] / p[i];
+			if (t > t1) return false; // Line is outside
+			if (t > t0) t0 = t; // Line enters clipping area
+        }
+        else if (p[i] < 0)
+		{
 			double t = q[i] / p[i];
-
-			if(t > t_L){
-				return false;
-			}
-			else if(t > t_E){
-				t_E = t;
-			}
+			if (t < t0) return false; // Line is outside
+			if (t < t1) t1 = t; // Line exits clipping area
 		}
-		else if(p[i] < 0){
-			double t = q[i] / p[i];
+		else if (q[i] > 0) return false; // Line is outside
+    }
 
-			if(t < t_E){
-				return false;
-			}
-			else if(t < t_L){
-				t_L = t;
-			}
-		}
-		else if(q[i] > 0){
-			return false;
-		}
-	}
+    if (t1 < 1)
+    {
+        p1.x = p0.x + t1 * dx;
+        p1.y = p0.y + t1 * dy;
+		p1.z = p0.z + t1 * dz;
+    }
+    if (t0 > 0)
+    {
+        p0.x += t0 * dx;
+        p0.y += t0 * dy;
+		p0.z += t0 * dz;
+    }
 
-	if(t_L < 1){
-		p1.x = p0.x + t_L * dx;
-		p1.y = p0.y + t_L * dy;
-		p1.z = p0.z + t_L * dz;
-	}
-
-	if(t_E > 0){
-		p1.x = p0.x + t_E * dx;
-		p1.y = p0.y + t_E * dy;
-		p1.z = p0.z + t_E * dz;
-	}
-	
-
-	return true;
+    return true; // Line is inside or intersects the clipping area
 }
 
 Color Scene::interpolateColor(const Color &c1, const Color &c2, double t)
@@ -1000,28 +782,7 @@ Color Scene::interpolateColor(const Color &c1, const Color &c2, double t)
 }
 
 /*
-	Checks if triangle is back facing.
-*/
-bool Scene::isTriangleBackFacing(const Triangle& triangle, Camera *camera)
-{
-    // Calculate the normal of the triangle
-    Vec3 v0 = *vertices[triangle.vertexIds[0] - 1];
-    Vec3 v1 = *vertices[triangle.vertexIds[1] - 1];
-    Vec3 v2 = *vertices[triangle.vertexIds[2] - 1];
-
-    Vec3 edge1 = v1 - v0;
-    Vec3 edge2 = v2 - v0;
-    Vec3 normal = normalizeVec3(crossProductVec3(edge1, edge2));
-
-    // Calculate view direction (from triangle to camera)
-    Vec3 viewDir = camera->position - v0;
-
-    // Check if the dot product of the normal and view direction is positive
-    return dotProductVec3(normal, viewDir) > 0; // ?????
-}
-
-/*
-	Rasterizes triangle.
+	Rasterizes line.
 */
 void rasterize_line(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector< vector<Color> > &image, int horRes, int verRes){
 	double dx = abs(v2.x - v1.x);
@@ -1114,6 +875,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 {
 	Vec3 xAxis = crossProductVec3(camera->gaze, camera->v);
 	camera->u = normalizeVec3(xAxis);
+
 	Matrix4 cameraMatrix = createCameraTransformationMatrix(camera);
 	Matrix4 projectionMatrix = (camera->projectionType == 0) ? createOrthographicProjectionMatrix(camera) : createPerspectiveProjectionMatrix(camera);
 	Matrix4 viewportMatrix = createViewportMatrix(camera);
@@ -1128,9 +890,6 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		for (int i = 0; i < mesh->triangles.size(); ++i)
         {
 			Triangle triangle = mesh->triangles[i];
-            // Apply transformations
-            // applyModelTransformation(mesh, triangle);
-            // applyCameraTransformation(camera, triangle);
 
             if (mesh->type == 0) // wireframe
             {
@@ -1152,7 +911,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				v2Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v2Homogeneous);
 
 				if(cullingEnabled){
-					if(cull_triangle(v0Homogeneous, v1Homogeneous, v2Homogeneous)){
+					if(isTriangleBackFacing(v0Homogeneous, v1Homogeneous, v2Homogeneous)){
 						continue;
 					}
 				}
@@ -1191,25 +950,6 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				{
 					rasterize_line(v2tempHomogeneous, v0tempHomogeneous, c2temp, c0temp, this->image, camera->horRes, camera->verRes);
 				}
-
-				// printf("clipping\n");
-				// if (clipping(*this, v0Homogeneous, v1Homogeneous))
-				// {
-				// 	printf ("lineRasterizer v0-v1 \n");
-				// 	drawLine(this, v0Homogeneous, v1Homogeneous, camera);
-				// }
-				// if (clipping(*this, v1tempHomogeneous, v2Homogeneous))
-				// {
-				// 	printf ("lineRasterizer v1-v2 \n");
-				// 	drawLine(this, v1tempHomogeneous, v2Homogeneous, camera);
-				// }
-				// if (clipping(*this, v2tempHomogeneous, v0tempHomogeneous))
-				// {
-				// 	printf ("lineRasterizer v2-v0 \n");
-				// 	drawLine(this, v2tempHomogeneous, v0tempHomogeneous, camera);
-				// }
-
-				// printf("--------------------\n");
 
             }
             else // solid

@@ -51,25 +51,15 @@ public:
 	Matrix4 createModelTransformationMatrix(Mesh *mesh);
 	Matrix4 createCameraTransformationMatrix(Camera *camera);
 
-	void applyModelTransformation(Mesh *mesh, Triangle& triangle);
-	void applyCameraTransformation(Camera *camera, Triangle& triangle);
-	void applyViewportTransformation(Camera *camera, Triangle& triangle);
-
-	// uint8_t computeOutcode(Camera *camera, double x, double y);
-	// void clipLine(Camera *camera, Vec3 &p0, Vec3 &p1);
-	// void clipTriangle(Camera *camera, Triangle& triangle);
-
 	bool liangBarskyClip(Camera *camera, Vec4 &p0, Vec4 &p1);
-	// void drawLine(Camera *camera, Vec3 *v1, Vec3 *v2, Color *c1, Color *c2);
 
-	// bool clipping(Camera& camera, Vec4 &vec0, Vec4 &vec1);
 	void midpoint1(Vec4 &vec1, Vec4 &vec2);
 	void midpoint2(Vec4 &vec1, Vec4 &vec2);
 	void lineRasterizer(Vec4 &vec1, Vec4 &vec2);
 
 	Color interpolateColor(const Color &c1, const Color &c2, double t);
 
-	bool isTriangleBackFacing(const Triangle& triangle, Camera *camera);
+	bool isTriangleBackFacing(Vec4 &v0, Vec4 &v1, Vec4 &v2);
 };
 
 #endif
