@@ -861,9 +861,9 @@ void Scene::forwardRenderingPipeline(Camera *camera)
                 Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1];
                 Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1];
 
-				Color c0 = *colorsOfVertices[v0.colorId - 1]; Color c0temp = *colorsOfVertices[v0.colorId - 1];
-				Color c1 = *colorsOfVertices[v1.colorId - 1]; Color c1temp = *colorsOfVertices[v1.colorId - 1];
-				Color c2 = *colorsOfVertices[v2.colorId - 1]; Color c2temp = *colorsOfVertices[v2.colorId - 1];
+				Color c0 = *colorsOfVertices[v0.colorId - 1];
+				Color c1 = *colorsOfVertices[v1.colorId - 1];
+				Color c2 = *colorsOfVertices[v2.colorId - 1];
 
 				Vec4 v0Homogeneous(v0.x, v0.y, v0.z, 1, v0.colorId);
 				Vec4 v1Homogeneous(v1.x, v1.y, v1.z, 1, v1.colorId);
@@ -906,11 +906,11 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				}
 				if (edgeTwoVisible)
 				{
-					rasterize_line(v1tempHomogeneous, v2Homogeneous, c1temp, c2, this->image, camera->horRes, camera->verRes);
+					rasterize_line(v1tempHomogeneous, v2Homogeneous, c1, c2, this->image, camera->horRes, camera->verRes);
 				}
 				if (edgeThreeVisible)
 				{
-					rasterize_line(v2tempHomogeneous, v0tempHomogeneous, c2temp, c0temp, this->image, camera->horRes, camera->verRes);
+					rasterize_line(v2tempHomogeneous, v0tempHomogeneous, c2, c0, this->image, camera->horRes, camera->verRes);
 				}
 
             }
