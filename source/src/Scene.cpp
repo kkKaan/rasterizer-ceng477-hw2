@@ -596,10 +596,10 @@ Matrix4 createOrthographicProjectionMatrix(Camera *camera)
 {
     double orthoMatrixValues[4][4] =
 	{
-        {2 / (camera->right - camera->left), 0, 0, -(camera->right + camera->left) / (camera->right - camera->left)},
-        {0, 2 / (camera->top - camera->bottom), 0, -(camera->top + camera->bottom) / (camera->top - camera->bottom)},
-        {0, 0, -2 / (camera->far - camera->near), -(camera->far + camera->near) / (camera->far - camera->near)},
-        {0, 0, 0, 1}
+        {2.0 / (camera->right - camera->left), 0, 0, -(camera->right + camera->left) / (camera->right - camera->left)},
+        {0, 2.0 / (camera->top - camera->bottom), 0, -(camera->top + camera->bottom) / (camera->top - camera->bottom)},
+        {0, 0, -2.0 / (camera->far - camera->near), -(camera->far + camera->near) / (camera->far - camera->near)},
+        {0, 0, 0, 1.0}
     };
 
     return Matrix4(orthoMatrixValues);
@@ -609,10 +609,10 @@ Matrix4 createPerspectiveProjectionMatrix(Camera *camera)
 {
     double perspectiveMatrixValues[4][4] =
 	{
-        {(2 * camera->near) / (camera->right - camera-> left), 0, (camera->right + camera-> left) / (camera->right - camera-> left), 0},
-        {0, (2 * camera->near) / (camera->top - camera-> bottom), (camera->top + camera-> bottom) / (camera->top - camera-> bottom), 0},
-        {0, 0, -(camera->far + camera->near) / (camera->far - camera->near), -(2 * camera->far * camera->near) / (camera->far - camera->near)},
-        {0, 0, -1, 0}
+        {(2.0 * camera->near) / (camera->right - camera-> left), 0, (camera->right + camera-> left) / (camera->right - camera-> left), 0},
+        {0, (2.0 * camera->near) / (camera->top - camera-> bottom), (camera->top + camera-> bottom) / (camera->top - camera-> bottom), 0},
+        {0, 0, -(camera->far + camera->near) / (camera->far - camera->near), -(2.0 * camera->far * camera->near) / (camera->far - camera->near)},
+        {0, 0, -1.0, 0}
     };
 
     return Matrix4(perspectiveMatrixValues);
@@ -648,12 +648,13 @@ Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
 
 				double translationMatrixValues[4][4] = 
 				{
-					{1, 0, 0, translation->tx},
-					{0, 1, 0, translation->ty},
-					{0, 0, 1, translation->tz},
-					{0, 0, 0, 1}
+					{1.0, 0, 0, translation->tx},
+					{0, 1.0, 0, translation->ty},
+					{0, 0, 1.0, translation->tz},
+					{0, 0, 0, 1.0}
 				};
 				Matrix4 translationMatrix(translationMatrixValues);
+
 				returnMatrix = multiplyMatrixWithMatrix(translationMatrix, returnMatrix);
 				break;
 			}
@@ -666,7 +667,7 @@ Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
 					{scaling->sx, 0, 0, 0},
 					{0, scaling->sy, 0, 0},
 					{0, 0, scaling->sz, 0},
-					{0, 0, 0, 1}
+					{0, 0, 0, 1.0}
 				};
 				Matrix4 scalingMatrix(scalingMatrixValues);
 
@@ -703,16 +704,16 @@ Matrix4 Scene::createCameraTransformationMatrix(Camera* camera)
 		{camera->u.x, camera->u.y, camera->u.z, 0},
 		{camera->v.x, camera->v.y, camera->v.z, 0},
 		{camera->w.x, camera->w.y, camera->w.z, 0},
-		{0, 0, 0, 1}
+		{0, 0, 0, 1.0}
 	};
 	Matrix4 rotationMatrix(rotationMatrixValues);
 
 	double translationMatrixValues[4][4] = 
 	{
-		{1, 0, 0, -camera->position.x},
-		{0, 1, 0, -camera->position.y},
-		{0, 0, 1, -camera->position.z},
-		{0, 0, 0, 1}
+		{1.0, 0, 0, -camera->position.x},
+		{0, 1.0, 0, -camera->position.y},
+		{0, 0, 1.0, -camera->position.z},
+		{0, 0, 0, 1.0}
 	};
 	Matrix4 translationMatrix(translationMatrixValues);
 
@@ -740,12 +741,12 @@ bool Scene::liangBarskyClip(Camera *camera, Vec4 &p0, Vec4 &p1)
     double t0 = 0.0;
     double t1 = 1.0;
 
-	p[0] = dx;  q[0] = -1 - p0.x; // Left
-	p[1] = -dx; q[1] = p0.x - 1; // Right
-	p[2] = dy;  q[2] = -1 - p0.y; // Bottom
-	p[3] = -dy; q[3] = p0.y - 1;  // Top
-	p[4] = dz;  q[4] = -1 - p0.z; // Front
-	p[5] = -dz; q[5] = p0.z - 1;  // Back
+	p[0] = dx;  q[0] = -1.0 - p0.x; // Left
+	p[1] = -dx; q[1] = p0.x - 1.0; // Right
+	p[2] = dy;  q[2] = -1.0 - p0.y; // Bottom
+	p[3] = -dy; q[3] = p0.y - 1.0;  // Top
+	p[4] = dz;  q[4] = -1.0 - p0.z; // Front
+	p[5] = -dz; q[5] = p0.z - 1.0;  // Back
 
     for (int i = 0; i < 6; i++)
     {
@@ -791,12 +792,12 @@ Color Scene::interpolateColor(const Color &c1, const Color &c2, double t)
 /*
 	Rasterizes line.
 */
-void Scene::rasterize_line(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector<vector<Color>> &image, int horRes, int verRes)
+void Scene::rasterizeLine(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector<vector<Color>> &image, int horRes, int verRes)
 {
-	int x0 = (int)v1.x;
-	int y0 = (int)v1.y;
-	int x1 = (int)v2.x;
-	int y1 = (int)v2.y;
+	int x0 = v1.x;
+	int y0 = v1.y;
+	int x1 = v2.x;
+	int y1 = v2.y;
 
 	int dx = abs(x1 - x0);
 	int dy = abs(y1 - y0);
@@ -845,7 +846,6 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 
     for (Mesh *mesh : this->meshes)
     {
-		// printf ("triangle count: %d\n", mesh->triangles.size());
 		Matrix4 modelMatrix = createModelTransformationMatrix(mesh);
 		Matrix4 modelViewMatrix = multiplyMatrixWithMatrix(cameraMatrix, modelMatrix);
 		Matrix4 modelViewProjectionMatrix = multiplyMatrixWithMatrix(projectionMatrix, modelViewMatrix);
@@ -856,7 +856,6 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 
             if (mesh->type == 0) // wireframe
             {
-				// printf ("wireframe, camera %d\n", camera->cameraId);
                 Vec3 &v0 = *vertices[triangle.vertexIds[0] - 1];
                 Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1];
                 Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1];
@@ -902,15 +901,15 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 
                 if (edgeOneVisible)
 				{
-					rasterize_line(v0Homogeneous, v1Homogeneous, c0, c1, this->image, camera->horRes, camera->verRes);
+					rasterizeLine(v0Homogeneous, v1Homogeneous, c0, c1, this->image, camera->horRes, camera->verRes);
 				}
 				if (edgeTwoVisible)
 				{
-					rasterize_line(v1tempHomogeneous, v2Homogeneous, c1, c2, this->image, camera->horRes, camera->verRes);
+					rasterizeLine(v1tempHomogeneous, v2Homogeneous, c1, c2, this->image, camera->horRes, camera->verRes);
 				}
 				if (edgeThreeVisible)
 				{
-					rasterize_line(v2tempHomogeneous, v0tempHomogeneous, c2, c0, this->image, camera->horRes, camera->verRes);
+					rasterizeLine(v2tempHomogeneous, v0tempHomogeneous, c2, c0, this->image, camera->horRes, camera->verRes);
 				}
 
             }

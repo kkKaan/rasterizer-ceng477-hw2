@@ -52,7 +52,7 @@ public:
 	Matrix4 createCameraTransformationMatrix(Camera *camera);
 
 	bool liangBarskyClip(Camera *camera, Vec4 &p0, Vec4 &p1);
-	void rasterize_line(Vec4 &v1, Vec4 &v2, Color c1, Color c2, std::vector<std::vector<Color>> &image, int horRes, int verRes);
+	void rasterizeLine(Vec4 &v1, Vec4 &v2, Color c1, Color c2, std::vector<std::vector<Color>> &image, int horRes, int verRes);
 
 	// void midpoint1(Vec4 &vec1, Vec4 &vec2);
 	// void midpoint2(Vec4 &vec1, Vec4 &vec2);
