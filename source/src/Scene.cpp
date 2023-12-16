@@ -887,9 +887,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				v1Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v1Homogeneous);
 				v2Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v2Homogeneous);
 
-				if(cullingEnabled){
-					if(isTriangleBackFacing(v0Homogeneous, v1Homogeneous, v2Homogeneous)) continue;
-				}
+				if(cullingEnabled && isTriangleBackFacing(v0Homogeneous, v1Homogeneous, v2Homogeneous)) continue;
 
 				if (camera->projectionType == 1) // perspective
 				{
