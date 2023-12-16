@@ -735,7 +735,11 @@ Matrix4 Scene::createCameraTransformationMatrix(Camera* camera)
 	return multiplyMatrixWithMatrix(rotationMatrix, translationMatrix);
 }
 
-bool Scene::isTriangleBackFacing(Vec4 &v0, Vec4 &v1, Vec4 &v2){
+/*
+	Checks if given triangle is back facing or not.
+*/
+bool Scene::isTriangleBackFacing(Vec4 &v0, Vec4 &v1, Vec4 &v2)
+{
 	Vec3 edge2_1 = Vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z, -1);
 	Vec3 edge3_1 = Vec3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z, -1);
 
@@ -846,6 +850,8 @@ void Scene::rasterizeLine(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector<vector<
 		}
 	}
 }
+
+
 
 /*
 	Transformations, clipping, culling, rasterization are done here.
