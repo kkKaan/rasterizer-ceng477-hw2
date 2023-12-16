@@ -854,7 +854,7 @@ void Scene::rasterizeLine(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector<vector<
 /*
 	Rasterizes triangle.
 */
-void Scene::rasterizeTriangle(Vec4 &v0, Vec4 &v1, Vec4 &v2, Color &c0, Color &c1, Color &c2, Camera *camera)
+void Scene::rasterizeTriangle(Vec4 &v0, Vec4 &v1, Vec4 &v2, Color &c0, Color &c1, Color &c2, Camera *camera, vector<vector<double>> &depthBuffer)
 {
 	// Find bounding box of triangle
 	int minX = min(min(v0.x, v1.x), v2.x);
@@ -872,9 +872,9 @@ void Scene::rasterizeTriangle(Vec4 &v0, Vec4 &v1, Vec4 &v2, Color &c0, Color &c1
 	maxY = min(verRes - 1, maxY);
 
 	// Rasterize pixels inside bounding box
-	for (int x = minX; x <= maxX; x++)
+	for (int x = minX; x <= maxX; ++x)
 	{
-		for (int y = minY; y <= maxY; y++)
+		for (int y = minY; y <= maxY; ++y)
 		{
 			// Barycentric coordinate tests
 			Vec3 p(x, y, 1);
@@ -887,8 +887,13 @@ void Scene::rasterizeTriangle(Vec4 &v0, Vec4 &v1, Vec4 &v2, Color &c0, Color &c1
 			// If p is inside triangle, interpolate vertex attributes and rasterize pixel
 			if (alpha >= 0 && beta >= 0 && gamma >= 0)
 			{
-				Color color = (c0 * alpha) + (c1 * beta) + (c2 * gamma);
-				image[x][y] = color; 
+				double depth = alpha*v0.z + beta*v1.z + gamma*v2.z;
+				if (depth < depthBuffer[x][y])
+				{
+					Color color = (c0 * alpha) + (c1 * beta) + (c2 * gamma);
+					image[x][y] = color; 
+					depthBuffer[x][y] = depth;
+				}
 			}
 		}
 	}
@@ -906,6 +911,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	Matrix4 projectionMatrix = (camera->projectionType == 0) ? createOrthographicProjectionMatrix(camera) : createPerspectiveProjectionMatrix(camera);
 	Matrix4 viewportMatrix = createViewportMatrix(camera);
 
+	vector<vector<double>> depthBuffer(camera->verRes, vector<double>(camera->horRes, INFINITY));
     for (Mesh *mesh : this->meshes)
     {
 		Matrix4 modelMatrix = createModelTransformationMatrix(mesh);
@@ -1005,7 +1011,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				v1Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v1Homogeneous);
 				v2Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v2Homogeneous);
 
-				rasterizeTriangle(v0Homogeneous, v1Homogeneous, v2Homogeneous, c0, c1, c2, camera);
+				rasterizeTriangle(v0Homogeneous, v1Homogeneous, v2Homogeneous, c0, c1, c2, camera, depthBuffer);
             }
         }
     }
