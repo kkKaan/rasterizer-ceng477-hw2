@@ -592,6 +592,9 @@ void Scene::convertPPMToPNG(string ppmFileName)
 	system(command.c_str());
 }
 
+/*
+	Creates orthographic projection matrix.
+*/
 Matrix4 createOrthographicProjectionMatrix(Camera *camera)
 {
     double orthoMatrixValues[4][4] =
@@ -605,6 +608,9 @@ Matrix4 createOrthographicProjectionMatrix(Camera *camera)
     return Matrix4(orthoMatrixValues);
 }
 
+/*
+	Creates perspective projection matrix.
+*/
 Matrix4 createPerspectiveProjectionMatrix(Camera *camera)
 {
     double perspectiveMatrixValues[4][4] =
@@ -618,6 +624,9 @@ Matrix4 createPerspectiveProjectionMatrix(Camera *camera)
     return Matrix4(perspectiveMatrixValues);
 }
 
+/*
+	Creates viewport matrix.
+*/
 Matrix4 createViewportMatrix(Camera *camera)
 {
 	double viewportMatrixValues[4][4] =
@@ -631,6 +640,9 @@ Matrix4 createViewportMatrix(Camera *camera)
 	return Matrix4(viewportMatrixValues);
 }
 
+/*
+	Creates model transformation matrix.
+*/
 Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
 {
 	Matrix4 returnMatrix = getIdentityMatrix();
@@ -697,6 +709,9 @@ Matrix4 Scene::createModelTransformationMatrix(Mesh *mesh)
 	return returnMatrix;
 }
 
+/*
+	Creates camera transformation matrix.
+*/
 Matrix4 Scene::createCameraTransformationMatrix(Camera* camera)
 {
 	double rotationMatrixValues[4][4] = 
