@@ -53,6 +53,7 @@ public:
 
 	bool liangBarskyClip(Camera *camera, Vec4 &p0, Vec4 &p1);
 	void rasterizeLine(Vec4 &v1, Vec4 &v2, Color c1, Color c2, std::vector<std::vector<Color>> &image, int horRes, int verRes);
+	void rasterizeTriangle(Vec4 &v0, Vec4 &v1, Vec4 &v2, Color &c0, Color &c1, Color &c2, Camera *camera);
 
 	// void midpoint1(Vec4 &vec1, Vec4 &vec2);
 	// void midpoint2(Vec4 &vec1, Vec4 &vec2);

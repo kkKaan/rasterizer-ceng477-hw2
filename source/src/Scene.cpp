@@ -851,7 +851,48 @@ void Scene::rasterizeLine(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector<vector<
 	}
 }
 
+/*
+	Rasterizes triangle.
+*/
+void Scene::rasterizeTriangle(Vec4 &v0, Vec4 &v1, Vec4 &v2, Color &c0, Color &c1, Color &c2, Camera *camera)
+{
+	// Find bounding box of triangle
+	int minX = min(min(v0.x, v1.x), v2.x);
+	int maxX = max(max(v0.x, v1.x), v2.x);
+	int minY = min(min(v0.y, v1.y), v2.y);
+	int maxY = max(max(v0.y, v1.y), v2.y);
 
+	int horRes = camera->horRes;
+	int verRes = camera->verRes;
+
+	// Clip against screen bounds
+	minX = max(0, minX);
+	minY = max(0, minY);
+	maxX = min(horRes - 1, maxX);
+	maxY = min(verRes - 1, maxY);
+
+	// Rasterize pixels inside bounding box
+	for (int x = minX; x <= maxX; x++)
+	{
+		for (int y = minY; y <= maxY; y++)
+		{
+			// Barycentric coordinate tests
+			Vec3 p(x, y, 1);
+			double alpha = ((v1.y - v2.y) * (p.x - v2.x) + (v2.x - v1.x) * (p.y - v2.y)) / 
+						((v1.y - v2.y) * (v0.x - v2.x) + (v2.x - v1.x) * (v0.y - v2.y));
+			double beta = ((v2.y - v0.y) * (p.x - v2.x) + (v0.x - v2.x) * (p.y - v2.y)) /
+						((v1.y - v2.y) * (v0.x - v2.x) + (v2.x - v1.x) * (v0.y - v2.y));
+			double gamma = 1.0 - alpha - beta;
+
+			// If p is inside triangle, interpolate vertex attributes and rasterize pixel
+			if (alpha >= 0 && beta >= 0 && gamma >= 0)
+			{
+				Color color = (c0 * alpha) + (c1 * beta) + (c2 * gamma);
+				image[x][y] = color; 
+			}
+		}
+	}
+}
 
 /*
 	Transformations, clipping, culling, rasterization are done here.
@@ -935,6 +976,36 @@ void Scene::forwardRenderingPipeline(Camera *camera)
             else // solid
             {
                 // Rasterize the triangle
+				Vec3 &v0 = *vertices[triangle.vertexIds[0] - 1];
+				Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1];
+				Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1];
+
+				Color c0 = *colorsOfVertices[v0.colorId - 1];
+				Color c1 = *colorsOfVertices[v1.colorId - 1];
+				Color c2 = *colorsOfVertices[v2.colorId - 1];
+
+				Vec4 v0Homogeneous(v0.x, v0.y, v0.z, 1, v0.colorId);
+				Vec4 v1Homogeneous(v1.x, v1.y, v1.z, 1, v1.colorId);
+				Vec4 v2Homogeneous(v2.x, v2.y, v2.z, 1, v2.colorId);
+
+				v0Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v0Homogeneous);
+				v1Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v1Homogeneous);
+				v2Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v2Homogeneous);
+
+				if (cullingEnabled && isTriangleBackFacing(v0Homogeneous, v1Homogeneous, v2Homogeneous)) continue;
+
+				if (camera->projectionType == 1) // perspective
+				{
+					v0Homogeneous = v0Homogeneous / v0Homogeneous.t;
+					v1Homogeneous = v1Homogeneous / v1Homogeneous.t;
+					v2Homogeneous = v2Homogeneous / v2Homogeneous.t;
+				}
+
+				v0Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v0Homogeneous);
+				v1Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v1Homogeneous);
+				v2Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v2Homogeneous);
+
+				rasterizeTriangle(v0Homogeneous, v1Homogeneous, v2Homogeneous, c0, c1, c2, camera);
             }
         }
     }
