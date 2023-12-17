@@ -648,7 +648,6 @@ void Scene::rasterizeTriangle(Vec4 &v0, Vec4 &v1, Vec4 &v2, Color &c0, Color &c1
 */
 void Scene::forwardRenderingPipeline(Camera *camera)
 {
-	std::cout << "here" << std::endl;
 	Vec3 xAxis = crossProductVec3(camera->gaze, camera->v);
 	camera->u = normalizeVec3(xAxis);
 
@@ -667,33 +666,33 @@ void Scene::forwardRenderingPipeline(Camera *camera)
         {
 			Triangle triangle = mesh->triangles[i];
 
+			Vec3 &v0 = *vertices[triangle.vertexIds[0] - 1];
+			Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1];
+			Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1];
+
+			Color c0 = *colorsOfVertices[v0.colorId - 1];
+			Color c1 = *colorsOfVertices[v1.colorId - 1];
+			Color c2 = *colorsOfVertices[v2.colorId - 1];
+
+			Vec4 v0Homogeneous(v0.x, v0.y, v0.z, 1, v0.colorId);
+			Vec4 v1Homogeneous(v1.x, v1.y, v1.z, 1, v1.colorId);
+			Vec4 v2Homogeneous(v2.x, v2.y, v2.z, 1, v2.colorId);
+
+			v0Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v0Homogeneous);
+			v1Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v1Homogeneous);
+			v2Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v2Homogeneous);
+
+			if(cullingEnabled && isTriangleBackFacing(v0Homogeneous, v1Homogeneous, v2Homogeneous)) continue;
+
+			if (camera->projectionType == 1) // perspective
+			{
+				v0Homogeneous = v0Homogeneous / v0Homogeneous.t;
+				v1Homogeneous = v1Homogeneous / v1Homogeneous.t;
+				v2Homogeneous = v2Homogeneous / v2Homogeneous.t;
+			}
+
             if (mesh->type == 0) // wireframe
             {
-                Vec3 &v0 = *vertices[triangle.vertexIds[0] - 1];
-                Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1];
-                Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1];
-
-				Color c0 = *colorsOfVertices[v0.colorId - 1];
-				Color c1 = *colorsOfVertices[v1.colorId - 1];
-				Color c2 = *colorsOfVertices[v2.colorId - 1];
-
-				Vec4 v0Homogeneous(v0.x, v0.y, v0.z, 1, v0.colorId);
-				Vec4 v1Homogeneous(v1.x, v1.y, v1.z, 1, v1.colorId);
-				Vec4 v2Homogeneous(v2.x, v2.y, v2.z, 1, v2.colorId);
-
-				v0Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v0Homogeneous);
-				v1Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v1Homogeneous);
-				v2Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v2Homogeneous);
-
-				if(cullingEnabled && isTriangleBackFacing(v0Homogeneous, v1Homogeneous, v2Homogeneous)) continue;
-
-				if (camera->projectionType == 1) // perspective
-				{
-					v0Homogeneous = v0Homogeneous / v0Homogeneous.t;
-					v1Homogeneous = v1Homogeneous / v1Homogeneous.t;
-					v2Homogeneous = v2Homogeneous / v2Homogeneous.t;
-				}
-
 				Vec4 v0tempHomogeneous = v0Homogeneous;
 				Vec4 v1tempHomogeneous = v1Homogeneous;
 				Vec4 v2tempHomogeneous = v2Homogeneous;
@@ -726,32 +725,6 @@ void Scene::forwardRenderingPipeline(Camera *camera)
             }
             else // solid
             {
-                // Rasterize the triangle
-				Vec3 &v0 = *vertices[triangle.vertexIds[0] - 1];
-				Vec3 &v1 = *vertices[triangle.vertexIds[1] - 1];
-				Vec3 &v2 = *vertices[triangle.vertexIds[2] - 1];
-
-				Color c0 = *colorsOfVertices[v0.colorId - 1];
-				Color c1 = *colorsOfVertices[v1.colorId - 1];
-				Color c2 = *colorsOfVertices[v2.colorId - 1];
-
-				Vec4 v0Homogeneous(v0.x, v0.y, v0.z, 1, v0.colorId);
-				Vec4 v1Homogeneous(v1.x, v1.y, v1.z, 1, v1.colorId);
-				Vec4 v2Homogeneous(v2.x, v2.y, v2.z, 1, v2.colorId);
-
-				v0Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v0Homogeneous);
-				v1Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v1Homogeneous);
-				v2Homogeneous = multiplyMatrixWithVec4(modelViewProjectionMatrix, v2Homogeneous);
-
-				if (cullingEnabled && isTriangleBackFacing(v0Homogeneous, v1Homogeneous, v2Homogeneous)) continue;
-
-				if (camera->projectionType == 1) // perspective
-				{
-					v0Homogeneous = v0Homogeneous / v0Homogeneous.t;
-					v1Homogeneous = v1Homogeneous / v1Homogeneous.t;
-					v2Homogeneous = v2Homogeneous / v2Homogeneous.t;
-				}
-
 				v0Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v0Homogeneous);
 				v1Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v1Homogeneous);
 				v2Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v2Homogeneous);
