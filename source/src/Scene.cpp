@@ -5,262 +5,6 @@
 using namespace tinyxml2;
 using namespace std;
 
-/////////////////////////////////////////////////////////////////////////////////
-bool isVisible(double den, double num, double &t_E, double &t_L) {
-    double t = num / den;
-    if (den > 0) {
-        if (t > t_L) {
-            return false;
-        }
-        if (t > t_E) {
-            t_E = t;
-        }
-    } else if (den < 0) {
-        if (t < t_E) {
-            return false;
-        }
-        if (t < t_L) {
-            t_L = t;
-        }
-    } else if (num > 0) {
-        return false;
-    }
-    return true;
-}
-
-
-bool clippedLine(Scene *scene,Vec4 & v1_t, Vec4 & v2_t, Color & c1, Color & c2) {
-    bool result = false;
-    Vec4 v0 = v1_t, v1 = v2_t;
-	int bflag = 0;
-    double tE = 0, tL = 1;
-	double d[]= {v1.x-v0.x,v1.y-v0.y,v1.z-v0.z};
-	double  min[] = {-1,-1,-1};
-	double max[] = {1,1,1};
-	double * v[] = {&v0.x,&v0.y,&v0.z};
-	Color dcolor;
-	dcolor.r = c2.r - c1.r;
-	dcolor.g = c2.g - c1.g;
-	dcolor.b = c2.b - c1.b;
-	Color *c1_t =new Color(c1);
-	Color *c2_t = new Color(c2);
-	int newColorId1 = v0.colorId;
-	int newColorId2 = v1.colorId;
-
-	
-	
-	for (int i = 0; i < 3; i++) {
-		if (isVisible(d[i], min[i]-(*v[i]), tE, tL) && isVisible(-d[i], (*v[i])-max[i], tE, tL)) {
-			bflag ++;
-		}
-	}
-		if(bflag == 3){
-			result = true;
-			/* Line is visible */
-			if (tL < 1.0) {
-				v1.x = v0.x + (d[0] * tL);
-				v1.y = v0.y + (d[1] * tL);
-				v1.z = v0.z + (d[2] * tL);
-				c2_t->r = c1_t->r + (dcolor.r * tL);
-				c2_t->g = c1_t->g + (dcolor.g * tL);
-				c2_t->b = c1_t->b + (dcolor.b * tL);
-				scene->colorsOfVertices.push_back(c2_t);
-				newColorId2= scene->colorsOfVertices.size();
-
-			}
-			if (tE > 0.0) {
-				v0.x = v0.x + (d[0] * tE);
-				v0.y = v0.y + (d[1] * tE);
-				v0.z = v0.z + (d[2] * tE);
-				c1_t->r = c1_t->r + (dcolor.r * tE);
-				c1_t->g = c1_t->g + (dcolor.g * tE);
-				c1_t->b = c1_t->b + (dcolor.b * tE);
-				scene->colorsOfVertices.push_back(c1_t);
-				newColorId1= scene->colorsOfVertices.size();
-			}
-		}
-
-	v1_t = v0;
-	v1_t.colorId = newColorId1;
-	v2_t = v1;
-	v2_t.colorId = newColorId2;
-	return result;
-}
-
-void drawLine(Scene *scene, Vec4&v1, Vec4 &v2, Camera *camera){
-	int x,y;
-	double d;
-	double y0,y1;
-	double x0,x1;
-	Color c;
-	Color dc;
-	double slope = 0;
-	if(x1!=x0) slope = abs(v1.y-v2.y)/abs(v1.x-v2.x);
-	if(slope<=1){
-		if( v1.x <= v2.x ){
-		x0 = v1.x;
-		x1 = v2.x;
-		y0 = v1.y;
-		y1 = v2.y;
-		c = *scene->colorsOfVertices[v1.colorId-1];
-		dc.r = (scene->colorsOfVertices[v2.colorId-1]->r - scene->colorsOfVertices[v1.colorId-1]->r)/(x1-x0);
-		dc.g = (scene->colorsOfVertices[v2.colorId-1]->g - scene->colorsOfVertices[v1.colorId-1]->g)/(x1-x0);
-		dc.b = (scene->colorsOfVertices[v2.colorId-1]->b - scene->colorsOfVertices[v1.colorId-1]->b)/(x1-x0);
-		}
-		else{
-		x0 = v2.x;
-		x1 = v1.x;
-		y0 = v2.y;
-		y1 = v1.y;
-		c = *scene->colorsOfVertices[v2.colorId-1];
-		dc.r = (scene->colorsOfVertices[v1.colorId-1]->r - scene->colorsOfVertices[v2.colorId-1]->r)/(x1-x0);
-		dc.g = (scene->colorsOfVertices[v1.colorId-1]->g - scene->colorsOfVertices[v2.colorId-1]->g)/(x1-x0);
-		dc.b = (scene->colorsOfVertices[v1.colorId-1]->b - scene->colorsOfVertices[v2.colorId-1]->b)/(x1-x0);
-		}
-		y = y0;
-		int dy = y0<y1? (y0-y1) : (y1-y0);
-		d = 2*dy + 0.5*(x1-x0);
-
-		for(x = x0; x <= x1; x+=1){
-			if(x<0) continue;
-			if(y<0){
-				if(y0<y1) {y+=1; continue;}
-				else break;
-			}
-			if(x >= camera->horRes) break;
-			if(y >= (camera->verRes)){
-				if(y0<y1) break;
-				else y-=1;
-				continue;
-			}
-			scene->image[x][y] = c;
-			if(d<0){
-				if(y0<y1) y+=1;
-				else y-=1;
-				d+= 2*(dy + (x1-x0));
-			}
-			else{
-				d+= 2*dy;
-			}
-			c.r += dc.r;
-			c.g += dc.g;
-			c.b += dc.b;
-		}
-	}
-	else{
-		if( v1.y <= v2.y ){
-			y0 = v1.y;
-			y1 = v2.y;
-			x0 = v1.x;
-			x1 = v2.x;
-			c = *scene->colorsOfVertices[v1.colorId-1];
-			dc.r = (scene->colorsOfVertices[v2.colorId-1]->r - scene->colorsOfVertices[v1.colorId-1]->r)/(y1-y0);
-			dc.g = (scene->colorsOfVertices[v2.colorId-1]->g - scene->colorsOfVertices[v1.colorId-1]->g)/(y1-y0);
-			dc.b = (scene->colorsOfVertices[v2.colorId-1]->b - scene->colorsOfVertices[v1.colorId-1]->b)/(y1-y0);
-		}
-		else{
-			y0 = v2.y;
-			y1 = v1.y;
-			x0 = v2.x;
-			x1 = v1.x;
-			c = *scene->colorsOfVertices[v2.colorId-1];
-			dc.r = (scene->colorsOfVertices[v1.colorId-1]->r - scene->colorsOfVertices[v2.colorId-1]->r)/(y1-y0);
-			dc.g = (scene->colorsOfVertices[v1.colorId-1]->g - scene->colorsOfVertices[v2.colorId-1]->g)/(y1-y0);
-			dc.b = (scene->colorsOfVertices[v1.colorId-1]->b - scene->colorsOfVertices[v2.colorId-1]->b)/(y1-y0);
-		}
-		x = x0;
-		int dy = x0<x1? (x0-x1) : (x1-x0);
-		d = 2*dy + 0.5*(y1-y0);
-
-		for(y = y0; y <= y1; y+=1){
-			if(y<0) continue;
-			if(x<0){
-				if(x0<x1) {x+=1; continue;}
-				else break;
-			}
-			if(y >= camera->verRes) break;
-			if(x >= (camera->horRes)){
-				if(x0<x1) break;
-				else x-=1;
-				continue;
-			}
-			
-			scene->image[x][y] = c;
-			if(d<0){
-				if(x0<x1) x+=1;
-				else x-=1;
-				d+= 2*(dy + (y1-y0));
-			}
-			else{
-				d+= 2*dy;
-			}
-			c.r += dc.r;
-			c.g += dc.g;
-			c.b += dc.b;
-		}
-	}
-	
-}
-
-bool clipping(Scene& scene, Vec4 &vertex1, Vec4 &vertex2) { //Liang-Barsky Algorithm is implemented
-    Color *color1 = scene.colorsOfVertices[vertex1.colorId - 1];
-    Color *color2 = scene.colorsOfVertices[vertex2.colorId - 1];
-
-    double t_E = 0;
-    double t_L = 1;
-
-    double dx = abs(vertex2.x - vertex1.x);
-    double dy = abs(vertex2.y - vertex1.y);
-    double dz = abs(vertex2.z - vertex1.z);
-
-    Color dc;
-    dc.r = color2->r - color1->r;
-    dc.g = color2->g - color1->g;
-    dc.b = color2->b - color1->b;
-
-    double x_min = -1;
-    double x_max = 1;
-    double y_min = -1;
-    double y_max = 1;
-    double z_min = -1;
-    double z_max = 1;
-
-    bool lineVisible = true;
-    if (isVisible(dx, x_min - vertex1.x, t_E, t_L)) {//left
-        if (isVisible(-dx, vertex1.x - x_max, t_E, t_L)) {//right
-            if (isVisible(dy, y_min - vertex1.y, t_E, t_L)) {//bottom
-                if (isVisible(-dy, vertex1.y - y_max, t_E, t_L)) {//top
-                    if (isVisible(dz, z_min - vertex1.z, t_E, t_L)) {//front
-                        if (isVisible(-dz, vertex1.z - z_max, t_E, t_L)) {//back
-                            lineVisible = true;
-                            if (t_L < 1) {
-                                vertex2.x = vertex1.x + t_L * dx;
-                                vertex2.y = vertex1.y + t_L * dy;
-                                vertex2.z = vertex1.z + t_L * dz;
-                                color2->r = color1->r + t_L * dc.r;
-                                color2->g = color1->g + t_L * dc.g;
-                                color2->b = color1->b + t_L * dc.b;
-                            }
-                            if (t_E > 0) {
-                                vertex1.x = vertex1.x + t_E * dx;
-                                vertex1.y = vertex1.y + t_E * dy;
-                                vertex1.z = vertex1.z + t_E * dz;
-                                color1->r = color1->r + t_E * dc.r;
-                                color1->g = color1->g + t_E * dc.g;
-                                color1->b = color1->b + t_E * dc.b;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return lineVisible;
-}
-
-/////////////////////////////////////////////////////////////////////////////////
-
 /*
 	Parses XML file
 */
@@ -585,8 +329,8 @@ void Scene::writeImageToPPMFile(Camera *camera)
 */
 void Scene::convertPPMToPNG(string ppmFileName)
 {
-	string command, directory;
-	
+	string command;
+
 	// TODO: Change implementation if necessary.
 	command = "./magick convert " + ppmFileName + " " + ppmFileName + ".png";
 	system(command.c_str());
@@ -888,7 +632,7 @@ void Scene::rasterizeTriangle(Vec4 &v0, Vec4 &v1, Vec4 &v2, Color &c0, Color &c1
 			if (alpha >= 0 && beta >= 0 && gamma >= 0)
 			{
 				double depth = alpha*v0.z + beta*v1.z + gamma*v2.z;
-				if (depth < depthBuffer[x][y])
+				if (depth <= depthBuffer[x][y])
 				{
 					Color color = (c0 * alpha) + (c1 * beta) + (c2 * gamma);
 					image[x][y] = color; 
@@ -904,6 +648,7 @@ void Scene::rasterizeTriangle(Vec4 &v0, Vec4 &v1, Vec4 &v2, Color &c0, Color &c1
 */
 void Scene::forwardRenderingPipeline(Camera *camera)
 {
+	std::cout << "here" << std::endl;
 	Vec3 xAxis = crossProductVec3(camera->gaze, camera->v);
 	camera->u = normalizeVec3(xAxis);
 
@@ -911,7 +656,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	Matrix4 projectionMatrix = (camera->projectionType == 0) ? createOrthographicProjectionMatrix(camera) : createPerspectiveProjectionMatrix(camera);
 	Matrix4 viewportMatrix = createViewportMatrix(camera);
 
-	vector<vector<double>> depthBuffer(camera->verRes, vector<double>(camera->horRes, INFINITY));
+	// vector<vector<double>> depthBuffer(camera->verRes, vector<double>(camera->horRes, INFINITY));
     for (Mesh *mesh : this->meshes)
     {
 		Matrix4 modelMatrix = createModelTransformationMatrix(mesh);
@@ -1011,7 +756,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				v1Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v1Homogeneous);
 				v2Homogeneous = multiplyMatrixWithVec4(viewportMatrix, v2Homogeneous);
 
-				rasterizeTriangle(v0Homogeneous, v1Homogeneous, v2Homogeneous, c0, c1, c2, camera, depthBuffer);
+				rasterizeTriangle(v0Homogeneous, v1Homogeneous, v2Homogeneous, c0, c1, c2, camera, this->depth);
             }
         }
     }
