@@ -1,5 +1,5 @@
 #include <iomanip>
-#include "../include/Vec3.h"
+#include "Vec3.h"
 
 Vec3::Vec3()
 {

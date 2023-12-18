@@ -1,6 +1,6 @@
 #include <iomanip>
 
-#include "../include/Matrix4.h"
+#include "Matrix4.h"
 
 Matrix4::Matrix4()
 {

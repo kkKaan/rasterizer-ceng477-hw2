@@ -1,6 +1,6 @@
 #include <iomanip>
 
-#include "../include/Translation.h"
+#include "Translation.h"
 
 Translation::Translation()
 {

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "../include/Scene.h"
+#include "Scene.h"
 
 using namespace std;
 

@@ -1,6 +1,6 @@
 #include <iomanip>
 
-#include "../include/Rotation.h"
+#include "Rotation.h"
 
 Rotation::Rotation()
 {

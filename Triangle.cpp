@@ -1,6 +1,6 @@
 #include <iomanip>
 
-#include "../include/Triangle.h"
+#include "Triangle.h"
 
 Triangle::Triangle()
 {

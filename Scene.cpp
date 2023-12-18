@@ -1,4 +1,4 @@
-#include "../include/Scene.h"
+#include "Scene.h"
 
 #define PI 3.14159265
 

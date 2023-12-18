@@ -1,6 +1,6 @@
 #include <iomanip>
 
-#include "../include/Color.h"
+#include "Color.h"
 
 Color::Color()
 {

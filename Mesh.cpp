@@ -1,7 +1,7 @@
 #include <vector>
 #include <iomanip>
 
-#include "../include/Mesh.h"
+#include "Mesh.h"
 
 Mesh::Mesh() {}
 
