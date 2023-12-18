@@ -574,7 +574,8 @@ void Scene::rasterizeLine(Vec4 &v1, Vec4 &v2, Color c1, Color c2, vector<vector<
 	{
 		if (x0 >= 0 && x0 < horRes && y0 >= 0 && y0 < verRes)
 		{
-			image[x0][y0] = interpolateColor(c1, c2, (double)(x0 - v1.x) / (v2.x - v1.x));
+			double t = abs((double)(v2.x - v1.x)) < EPSILON ? 0 : (double)(x0 - v1.x) / (v2.x - v1.x);
+			image[x0][y0] = interpolateColor(c1, c2, t);
 		}
 
 		if (x0 == x1 && y0 == y1)
