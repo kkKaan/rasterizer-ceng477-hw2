@@ -1,8 +1,7 @@
 CC = g++
 CFLAGS = -O3
 TARGET = rasterizer
-DIR = source/src
-SOURCES = $(DIR)/*.cpp
+SOURCES = *.cpp
 
 all: $(TARGET)
 
