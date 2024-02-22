@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
-#include "Helpers.h"
+
+#include "../include/Helpers.h"
 
 /*
  * Calculate cross product of vec3 a, vec3 b and return resulting vec3.

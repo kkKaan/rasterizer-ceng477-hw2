@@ -6,7 +6,6 @@
 #include "Matrix4.h"
 #include "Vec3.h"
 #include "Vec4.h"
-// #include "Scene.h"
 
 /*
  * Calculate cross product of vec3 a, vec3 b and return resulting vec3.

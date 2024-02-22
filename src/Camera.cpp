@@ -1,6 +1,6 @@
 #include <iomanip>
 
-#include "Camera.h"
+#include "../include/Camera.h"
 
 Camera::Camera() {}
 
@@ -13,7 +13,6 @@ Camera::Camera(int cameraId,
                int horRes, int verRes,
                std::string outputFilename)
 {
-
     this->cameraId = cameraId;
     this->projectionType = projectionType;
     this->position = position;

@@ -1,6 +1,6 @@
 #include <iomanip>
 
-#include "Vec4.h"
+#include "../include/Vec4.h"
 
 Vec4::Vec4()
 {

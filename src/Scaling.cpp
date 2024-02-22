@@ -1,5 +1,6 @@
 #include <iomanip>
-#include "Scaling.h"
+
+#include "../include/Scaling.h"
 
 Scaling::Scaling()
 {
