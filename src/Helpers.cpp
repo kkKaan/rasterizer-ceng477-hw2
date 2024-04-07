@@ -1,7 +1,7 @@
-#include <iostream>
-#include <cmath>
-
 #include "../include/Helpers.h"
+
+#include <cmath>
+#include <iostream>
 
 /*
  * Calculate cross product of vec3 a, vec3 b and return resulting vec3.
@@ -83,7 +83,6 @@ void printVec3(Vec3 v)
  */
 int areEqualVec3(Vec3 a, Vec3 b)
 {
-
     /* if x difference, y difference and z difference is smaller than threshold, then they are equal */
     if ((ABS((a.x - b.x)) < EPSILON) && (ABS((a.y - b.y)) < EPSILON) && (ABS((a.z - b.z)) < EPSILON))
     {

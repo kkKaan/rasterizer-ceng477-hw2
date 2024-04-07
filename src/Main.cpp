@@ -1,23 +1,22 @@
+#include "../include/Scene.h"
+
 #include <iostream>
 #include <vector>
 
-#include "../include/Scene.h"
-
 using namespace std;
 
-Scene *scene;
+Scene* scene;
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     if (argc != 2)
     {
-        cout << "Please run the rasterizer as:" << endl
-             << "\t./rasterizer <input_file_name>" << endl;
+        cout << "Please run the rasterizer as:" << endl << "\t./rasterizer <input_file_name>" << endl;
         return 1;
     }
     else
     {
-        const char *xmlPath = argv[1];
+        const char* xmlPath = argv[1];
 
         scene = new Scene(xmlPath);
 
@@ -35,8 +34,6 @@ int main(int argc, char *argv[])
             // Converts PPM image in given path to PNG file, by calling ImageMagick's 'convert' command.
             // Change/remove implementation if necessary.
             // scene->convertPPMToPNG(scene->cameras[i]->outputFilename);
-
-
         }
 
         // test

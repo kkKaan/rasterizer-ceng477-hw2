@@ -1,6 +1,6 @@
-#include <iomanip>
-
 #include "../include/Vec3.h"
+
+#include <iomanip>
 
 Vec3::Vec3()
 {
@@ -26,7 +26,7 @@ Vec3::Vec3(double x, double y, double z, int colorId)
     this->colorId = colorId;
 }
 
-Vec3::Vec3(const Vec3 &other)
+Vec3::Vec3(const Vec3& other)
 {
     this->x = other.x;
     this->y = other.y;
@@ -38,32 +38,32 @@ double Vec3::getNthComponent(int n)
 {
     switch (n)
     {
-    case 0:
+    case 0 :
         return this->x;
 
-    case 1:
+    case 1 :
         return this->y;
 
-    case 2:
-    default:
+    case 2 :
+    default :
         return this->z;
     }
 }
 
-std::ostream &operator<<(std::ostream &os, const Vec3 &v)
+std::ostream& operator<<(std::ostream& os, const Vec3& v)
 {
     os << std::fixed << std::setprecision(6) << "[" << v.x << ", " << v.y << ", " << v.z << "]";
     return os;
 }
 
-Vec3 Vec3::operator-(const Vec3 &v)
+Vec3 Vec3::operator-(const Vec3& v)
 {
     return Vec3(-v.x, -v.y, -v.z);
 }
 
 double adjustForNegativeZero(double value)
 {
-    const double threshold = 1e-7;  // Threshold for considering a value as zero
+    const double threshold = 1e-7;   // Threshold for considering a value as zero
     if (abs(value) < threshold)
     {
         return 0.0;

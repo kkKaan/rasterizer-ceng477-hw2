@@ -1,6 +1,6 @@
-#include <iomanip>
-
 #include "../include/Translation.h"
+
+#include <iomanip>
 
 Translation::Translation()
 {
@@ -18,8 +18,9 @@ Translation::Translation(int translationId, double tx, double ty, double tz)
     this->tz = tz;
 }
 
-std::ostream &operator<<(std::ostream &os, const Translation &t)
+std::ostream& operator<<(std::ostream& os, const Translation& t)
 {
-    os << std::fixed << std::setprecision(3) << "Translation " << t.translationId << " => [" << t.tx << ", " << t.ty << ", " << t.tz << "]";
+    os << std::fixed << std::setprecision(3) << "Translation " << t.translationId << " => [" << t.tx << ", " << t.ty
+       << ", " << t.tz << "]";
     return os;
 }

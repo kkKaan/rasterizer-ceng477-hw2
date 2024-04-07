@@ -1,6 +1,6 @@
-#include <iomanip>
-
 #include "../include/Scaling.h"
+
+#include <iomanip>
 
 Scaling::Scaling()
 {
@@ -18,9 +18,10 @@ Scaling::Scaling(int scalingId, double sx, double sy, double sz)
     this->sz = sz;
 }
 
-std::ostream &operator<<(std::ostream &os, const Scaling &s)
+std::ostream& operator<<(std::ostream& os, const Scaling& s)
 {
-    os << std::fixed << std::setprecision(3) << "Scaling " << s.scalingId << " => [" << s.sx << ", " << s.sy << ", " << s.sz << "]";
+    os << std::fixed << std::setprecision(3) << "Scaling " << s.scalingId << " => [" << s.sx << ", " << s.sy << ", "
+       << s.sz << "]";
 
     return os;
 }

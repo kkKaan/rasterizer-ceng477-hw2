@@ -8,12 +8,12 @@ public:
 
     Color();
     Color(double r, double g, double b);
-    Color(const Color &other);
-    friend std::ostream &operator<<(std::ostream &os, const Color &c);
-    Color operator+(const Color &c);
-    Color operator*(const double &c);
-    Color operator-(const Color &c);
-    Color operator/(const double &d);
+    Color(const Color& other);
+    friend std::ostream& operator<<(std::ostream& os, const Color& c);
+    Color operator+(const Color& c);
+    Color operator*(const double& c);
+    Color operator-(const Color& c);
+    Color operator/(const double& d);
 };
 
 #endif

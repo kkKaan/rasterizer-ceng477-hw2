@@ -1,6 +1,6 @@
-#include <iomanip>
-
 #include "../include/Vec4.h"
+
+#include <iomanip>
 
 Vec4::Vec4()
 {
@@ -29,7 +29,7 @@ Vec4::Vec4(double x, double y, double z, double t, int colorId)
     this->colorId = colorId;
 }
 
-Vec4::Vec4(const Vec4 &other)
+Vec4::Vec4(const Vec4& other)
 {
     this->x = other.x;
     this->y = other.y;
@@ -42,22 +42,22 @@ double Vec4::getNthComponent(int n)
 {
     switch (n)
     {
-    case 0:
+    case 0 :
         return this->x;
 
-    case 1:
+    case 1 :
         return this->y;
 
-    case 2:
+    case 2 :
         return this->z;
 
-    case 3:
-    default:
+    case 3 :
+    default :
         return this->t;
     }
 }
 
-std::ostream &operator<<(std::ostream &os, const Vec4 &v)
+std::ostream& operator<<(std::ostream& os, const Vec4& v)
 {
     os << std::fixed << std::setprecision(6) << "[" << v.x << ", " << v.y << ", " << v.z << ", " << v.t << "]";
     return os;
@@ -73,20 +73,24 @@ Vec4 Vec4::scaleVec4(Scaling s)
     return Vec4(this->x * s.sx, this->y * s.sy, this->z * s.sz, this->t, this->colorId);
 }
 
-Vec4 Vec4::operator-(const Vec4 &v)
+Vec4 Vec4::operator-(const Vec4& v)
 {
     return Vec4(this->x - v.x, this->y - v.y, this->z - v.z, this->t - v.t);
 }
 
-Vec4 Vec4::operator+(const Vec4 &v)
+Vec4 Vec4::operator+(const Vec4& v)
 {
     return Vec4(this->x + v.x, this->y + v.y, this->z + v.z, this->t + v.t);
 }
 
-Vec4 Vec4::operator/(const double scalar) const {
-    if (scalar != 0) {
+Vec4 Vec4::operator/(const double scalar) const
+{
+    if (scalar != 0)
+    {
         return Vec4(x / scalar, y / scalar, z / scalar, t / scalar, colorId);
-    } else {
+    }
+    else
+    {
         return Vec4();
     }
 }

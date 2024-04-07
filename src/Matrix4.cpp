@@ -1,6 +1,6 @@
-#include <iomanip>
-
 #include "../include/Matrix4.h"
+
+#include <iomanip>
 
 Matrix4::Matrix4()
 {
@@ -24,7 +24,7 @@ Matrix4::Matrix4(double values[4][4])
     }
 }
 
-Matrix4::Matrix4(const Matrix4 &other)
+Matrix4::Matrix4(const Matrix4& other)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -35,11 +35,10 @@ Matrix4::Matrix4(const Matrix4 &other)
     }
 }
 
-std::ostream &operator<<(std::ostream &os, const Matrix4 &m)
+std::ostream& operator<<(std::ostream& os, const Matrix4& m)
 {
-
-    os << std::fixed << std::setprecision(6) << "|" << m.values[0][0] << "|" << m.values[0][1] << "|" << m.values[0][2] << "|" << m.values[0][3] << "|"
-       << std::endl
+    os << std::fixed << std::setprecision(6) << "|" << m.values[0][0] << "|" << m.values[0][1] << "|" << m.values[0][2]
+       << "|" << m.values[0][3] << "|" << std::endl
        << "|" << m.values[1][0] << "|" << m.values[1][1] << "|" << m.values[1][2] << "|" << m.values[1][3] << "|"
        << std::endl
        << "|" << m.values[2][0] << "|" << m.values[2][1] << "|" << m.values[2][2] << "|" << m.values[2][3] << "|"
@@ -49,15 +48,15 @@ std::ostream &operator<<(std::ostream &os, const Matrix4 &m)
     return os;
 }
 
-Matrix4 Matrix4::operator*(const Matrix4 &other)
+Matrix4 Matrix4::operator*(const Matrix4& other)
 {
     Matrix4 result;
 
-    for (int i = 0; i < 4; i++) // row
+    for (int i = 0; i < 4; i++)   // row
     {
-        for (int j = 0; j < 4; j++) // column
+        for (int j = 0; j < 4; j++)   // column
         {
-            for (int k = 0; k < 4; k++) // index
+            for (int k = 0; k < 4; k++)   // index
             {
                 result.values[i][j] += this->values[i][k] * other.values[k][j];
             }

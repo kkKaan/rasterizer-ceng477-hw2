@@ -1,16 +1,13 @@
-#include <iomanip>
-
 #include "../include/Camera.h"
 
-Camera::Camera() {}
+#include <iomanip>
 
-Camera::Camera(int cameraId,
-               int projectionType,
-               Vec3 position, Vec3 gaze,
-               Vec3 u, Vec3 v, Vec3 w,
-               double left, double right, double bottom, double top,
-               double near, double far,
-               int horRes, int verRes,
+Camera::Camera()
+{
+}
+
+Camera::Camera(int cameraId, int projectionType, Vec3 position, Vec3 gaze, Vec3 u, Vec3 v, Vec3 w, double left,
+               double right, double bottom, double top, double near, double far, int horRes, int verRes,
                std::string outputFilename)
 {
     this->cameraId = cameraId;
@@ -31,7 +28,7 @@ Camera::Camera(int cameraId,
     this->outputFilename = outputFilename;
 }
 
-Camera::Camera(const Camera &other)
+Camera::Camera(const Camera& other)
 {
     this->cameraId = other.cameraId;
     this->projectionType = other.projectionType;
@@ -51,14 +48,17 @@ Camera::Camera(const Camera &other)
     this->outputFilename = other.outputFilename;
 }
 
-std::ostream &operator<<(std::ostream &os, const Camera &c)
+std::ostream& operator<<(std::ostream& os, const Camera& c)
 {
-    const char *camType = c.projectionType ? "perspective" : "orthographic";
+    const char* camType = c.projectionType ? "perspective" : "orthographic";
 
-    os << std::fixed << std::setprecision(6) << "Camera " << c.cameraId << " (" << camType << ") => pos: " << c.position << " gaze: " << c.gaze << std::endl
+    os << std::fixed << std::setprecision(6) << "Camera " << c.cameraId << " (" << camType << ") => pos: " << c.position
+       << " gaze: " << c.gaze << std::endl
        << "\tu: " << c.u << " v: " << c.v << " w: " << c.w << std::endl
-       << std::fixed << std::setprecision(3) << "\tleft: " << c.left << " right: " << c.right << " bottom: " << c.bottom << " top: " << c.top << std::endl
-       << "\tnear: " << c.near << " far: " << c.far << " resolutions: " << c.horRes << "x" << c.verRes << " fileName: " << c.outputFilename;
+       << std::fixed << std::setprecision(3) << "\tleft: " << c.left << " right: " << c.right << " bottom: " << c.bottom
+       << " top: " << c.top << std::endl
+       << "\tnear: " << c.near << " far: " << c.far << " resolutions: " << c.horRes << "x" << c.verRes
+       << " fileName: " << c.outputFilename;
 
     return os;
 }
