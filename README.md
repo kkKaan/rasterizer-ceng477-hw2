@@ -53,7 +53,7 @@ An example XML configuration might look like this:
     </Objects>
 </Scene>
 ```
-Refer to the `examples` directory for more XML scene files.
+Refer to the `input_outputs.zip` for more XML scene files and expected results.
 
 ## Contributors
 Kaan Karaçanta
