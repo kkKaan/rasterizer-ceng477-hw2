@@ -56,7 +56,5 @@ An example XML configuration might look like this:
 Refer to the `examples` directory for more XML scene files.
 
 ## Contributors
-List of contributors (to be filled in by the project owner).
-
-## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+Kaan Karaçanta
+Taha Emir Gökçegöz
