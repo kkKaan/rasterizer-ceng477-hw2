@@ -51,7 +51,9 @@ An example XML configuration might look like this:
     <Rotations>
         <!-- Rotation definitions go here -->
     </Rotations>
-    ...
+    .
+    .
+    .
 </Scene>
 ```
 Refer to the `input_outputs.zip` for more XML scene files and expected results.
