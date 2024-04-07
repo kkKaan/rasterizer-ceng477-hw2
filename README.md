@@ -12,7 +12,6 @@ This project is a 3D rasterizer designed for rendering scenes described in XML f
 - [Configuration](#configuration)
 - [Examples](#examples)
 - [Contributors](#contributors)
-- [License](#license)
 
 ## Installation
 To compile the rasterizer, ensure you have `g++` installed and use the following command in the project root directory:
